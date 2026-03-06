@@ -8,15 +8,15 @@ import {io} from 'socket.io-client'
 
 onMounted(() => {
 
-  const socket = io('http://localhost:5174', { autoConnect: false, query: { cols: 100, rows: 40 } });
+  const socket = io('http://localhost:5174', { autoConnect: false });
 
-  const term = new Terminal({ cursorBlink: true, theme: { background: '#333' }, cols: 100, rows: 40 });
+  const term = new Terminal({ cursorBlink: true, theme: { background: '#333' } });
   const fitAddon = new FitAddon();
   term.loadAddon(fitAddon);
-  term.open(document.getElementById('terminal-container'));
-  fitAddon.fit();
+  const terminalContainer = document.getElementById('terminal-container');
+  term.open(terminalContainer);
 
-  // term.onResize(({ cols, rows }) => socket.emit('resize', { cols, rows }));
+  term.onResize(({ cols, rows }) => socket.emit('resize', { cols, rows }));
   window.addEventListener('resize', () => fitAddon.fit());
 
   term.onData(data => socket.emit('data', data));
@@ -34,7 +34,11 @@ onMounted(() => {
   socket.on('disconnect', () => term.dispose());
 
   socket.connect();
+  fitAddon.fit();
+  term.focus();
 
+
+  // term.resize(120, 30);
 
 
 
@@ -89,8 +93,11 @@ onMounted(() => {
 
 <style>
 #terminal-container {
-  width: 70em;
-  height: 100vh;
+  width: 100%;
+  height: 90vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 </style>
 

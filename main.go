@@ -5,6 +5,8 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"strings"
+
 	//tea "charm.land/bubbletea/v2"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -87,7 +89,7 @@ func (m model) View() string {
 		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
 	}
 
-	return m.txtStyle.Render(s) + "\n\n" + m.quitStyle.Render("Press 'q' to quit\n")
+	return m.txtStyle.Render(s) + "\n\n" + m.quitStyle.Render("Press 'q' to quit\n") + "\n\n" + m.txtStyle.Render(strings.Repeat("=", 126)) + "\n"
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
