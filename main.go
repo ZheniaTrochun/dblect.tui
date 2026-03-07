@@ -5,11 +5,14 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"github.com/rivo/uniseg"
+	"image/color"
+	"slices"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	//tea "charm.land/bubbletea/v2"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
@@ -23,14 +26,38 @@ import (
 	"time"
 )
 
+var (
+	selectionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#F25D94")).
+			Underline(true)
+
+	dialogBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#874BFD")).
+			Padding(5, 5).
+			BorderTop(true).
+			BorderLeft(true).
+			BorderRight(true).
+			BorderBottom(true)
+
+	docStyle = lipgloss.NewStyle().Padding(1, 2, 1, 2)
+)
+
+var (
+	choices       = []string{"Лекції", "Рейтинг", "Вправи SQL"}
+	longestChoice = slices.MaxFunc(choices, func(a, b string) int {
+		return len(a) - len(b)
+	})
+	maxChoiceLength = len(longestChoice)
+)
+
 type model struct {
-	term      string
-	profile   string
-	width     int
-	height    int
-	bg        string
-	txtStyle  lipgloss.Style
-	quitStyle lipgloss.Style
+	term    string
+	profile string
+	width   int
+	height  int
+	bg      string
+	pty     ssh.Pty
 
 	choices  []string
 	cursor   int
@@ -58,7 +85,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(m.choices)-1 {
 				m.cursor++
 			}
-		case "enter", "space":
+		case "enter", "space", " ":
 			_, ok := m.selected[m.cursor]
 			if ok {
 				delete(m.selected, m.cursor)
@@ -72,32 +99,82 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	s := fmt.Sprintf("Your term is %s\nYour window size is %dx%d\nBackground: %s\nColor Profile: %s", m.term, m.width, m.height, m.bg, m.profile)
-
-	s += "\n\n" + banner + "\n\n"
+	s := ""
 	for i, choice := range m.choices {
-		cursor := " "
+		if i != 0 {
+			s += "\n\n"
+		}
+
 		if m.cursor == i {
-			cursor = ">"
+			s += "  " + selectionStyle.Align(lipgloss.Center).Render(choice)
+		} else {
+			s += choice
 		}
-
-		checked := " "
-		if _, ok := m.selected[i]; ok {
-			checked = "x"
-		}
-
-		s += fmt.Sprintf("\t%s [%s] %s\n", cursor, checked, choice)
 	}
 
-	return m.txtStyle.Render(s) + "\n\n" + m.quitStyle.Render("Press 'q' to quit\n") + "\n\n" + m.txtStyle.Render(strings.Repeat("=", 126)) + "\n"
+	doc := strings.Builder{}
+
+	{
+		grad := applyGradient(
+			lipgloss.NewStyle(),
+			banner,
+			lipgloss.Color("#EDFF82"),
+			lipgloss.Color("#F25D94"),
+		)
+
+		header := lipgloss.NewStyle().
+			Width(70).
+			Align(lipgloss.Center).
+			Render(grad)
+
+		chooseList := lipgloss.NewStyle().Align(lipgloss.Left).Width(maxChoiceLength + 2).Render(s)
+
+		choicesBox := dialogBoxStyle.
+			Width(70).
+			Align(lipgloss.Center).
+			Render(chooseList)
+
+		ui := lipgloss.JoinVertical(lipgloss.Center, header, choicesBox)
+
+		dialog := lipgloss.Place(m.pty.Window.Width, m.pty.Window.Height,
+			lipgloss.Center, lipgloss.Center,
+			ui,
+			lipgloss.WithWhitespaceChars("  "),
+		)
+
+		doc.WriteString(dialog + "\n\n")
+	}
+
+	return docStyle.Render(doc.String())
+}
+
+// applyGradient applies a gradient to the given string.
+func applyGradient(base lipgloss.Style, input string, from, to color.Color) string {
+	// We want to get the graphemes of the input string, which is the number of
+	// characters as a human would see them.
+	//
+	// We definitely don't want to use len(), because that returns the
+	// bytes. The rune count would get us closer but there are times, like with
+	// emojis, where the rune count is greater than the number of actual
+	// characters.
+	g := uniseg.NewGraphemes(input)
+	var chars []string
+	for g.Next() {
+		chars = append(chars, g.Str())
+	}
+
+	gradient := lipgloss.Blend1D(len(chars), from, to)
+	var output strings.Builder
+	for i, char := range chars {
+		output.WriteString(base.Foreground(gradient[i]).Render(char))
+	}
+	return output.String()
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	pty, _, _ := s.Pty()
 
 	renderer := bubbletea.MakeRenderer(s)
-	txtStyle := renderer.NewStyle().Foreground(lipgloss.Color("10"))
-	quitStyle := renderer.NewStyle().Foreground(lipgloss.Color("8"))
 
 	bg := "light"
 	if renderer.HasDarkBackground() {
@@ -105,13 +182,13 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	}
 
 	model := model{
-		term:      pty.Term,
-		profile:   renderer.ColorProfile().Name(),
-		bg:        bg,
-		txtStyle:  txtStyle,
-		quitStyle: quitStyle,
-		width:     pty.Window.Width,
-		height:    pty.Window.Height,
+		term:    pty.Term,
+		profile: renderer.ColorProfile().Name(),
+		bg:      bg,
+		pty:     pty,
+
+		width:  pty.Window.Width,
+		height: pty.Window.Height,
 
 		choices:  []string{"Лекції", "Рейтинг", "Вправи SQL"},
 		cursor:   0,
@@ -130,12 +207,6 @@ const (
 var banner string
 
 func main() {
-	//p := tea.NewProgram(initModel())
-	//
-	//if _, err := p.Run(); err != nil {
-	//	fmt.Printf("CRITICAL ERRRRRRORRRRRR: %s", err)
-	//	os.Exit(1)
-	//}
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
