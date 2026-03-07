@@ -74,7 +74,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	s := fmt.Sprintf("Your term is %s\nYour window size is %dx%d\nBackground: %s\nColor Profile: %s", m.term, m.width, m.height, m.bg, m.profile)
 
-	s += "\n\nWhat should we buy?\n\n"
+	s += "\n\n" + banner + "\n\n"
 	for i, choice := range m.choices {
 		cursor := " "
 		if m.cursor == i {
@@ -86,7 +86,7 @@ func (m model) View() string {
 			checked = "x"
 		}
 
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+		s += fmt.Sprintf("\t%s [%s] %s\n", cursor, checked, choice)
 	}
 
 	return m.txtStyle.Render(s) + "\n\n" + m.quitStyle.Render("Press 'q' to quit\n") + "\n\n" + m.txtStyle.Render(strings.Repeat("=", 126)) + "\n"
@@ -113,7 +113,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		width:     pty.Window.Width,
 		height:    pty.Window.Height,
 
-		choices:  []string{"Buy RedBull", "Buy Cola", "Rent Pulp Fiction film"},
+		choices:  []string{"Лекції", "Рейтинг", "Вправи SQL"},
 		cursor:   0,
 		selected: make(map[int]struct{}),
 	}

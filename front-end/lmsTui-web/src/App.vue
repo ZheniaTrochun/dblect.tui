@@ -33,10 +33,10 @@ onMounted(() => {
   socket.on('connect', () => socket.emit('resize', { cols: term.cols, rows: term.rows }));
   socket.on('disconnect', () => term.dispose());
 
-  socket.connect();
   fitAddon.fit();
   term.focus();
 
+  socket.connect();
 
   // term.resize(120, 30);
 
