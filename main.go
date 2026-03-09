@@ -8,6 +8,7 @@ import (
 	"github.com/rivo/uniseg"
 	"image/color"
 	"slices"
+	"strconv"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -40,7 +41,42 @@ var (
 			BorderRight(true).
 			BorderBottom(true)
 
-	docStyle = lipgloss.NewStyle().Padding(1, 2, 1, 2)
+	// Status Bar.
+
+	statusNugget = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFFDF5")).
+			Padding(0, 1)
+
+	statusBarStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#C1C6B2")).
+			Background(lipgloss.Color("#353533"))
+
+	statusStyle = lipgloss.NewStyle().
+			Inherit(statusBarStyle).
+			Foreground(lipgloss.Color("#FFFDF5")).
+			Background(lipgloss.Color("#FF5F87")).
+			Padding(0, 1).
+			MarginRight(1)
+
+	encodingStyle = statusNugget.
+			Background(lipgloss.Color("#A550DF")).
+			Align(lipgloss.Right)
+
+	statusText = lipgloss.NewStyle().Inherit(statusBarStyle)
+
+	fishCakeStyle = statusNugget.Background(lipgloss.Color("#6124DF"))
+
+	// Floating thing.
+
+	//floatingStyle = lipgloss.NewStyle().
+	//		Italic(true).
+	//		Foreground(lipgloss.Color("#FFF7DB")).
+	//		Background(lipgloss.Color("#F25D94")).
+	//		Padding(1, 6).
+	//		Align(lipgloss.Center)
+
+	//docStyle = lipgloss.NewStyle().Padding(1, 2, 1, 2)
+	docStyle = lipgloss.NewStyle().Padding(0, 0, 0, 0)
 )
 
 var (
@@ -75,13 +111,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c", "q", "й":
 			return m, tea.Quit
-		case "up", "k":
+		case "up", "k", "л":
 			if m.cursor > 0 {
 				m.cursor--
 			}
-		case "down", "j":
+		case "down", "j", "о":
 			if m.cursor < len(m.choices)-1 {
 				m.cursor++
 			}
@@ -92,6 +128,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.selected[m.cursor] = struct{}{}
 			}
+		case "1":
+			m.cursor = 0
+		case "2":
+			m.cursor = 1
+		case "3":
+			m.cursor = 2
 		}
 	}
 
@@ -105,10 +147,12 @@ func (m model) View() string {
 			s += "\n\n"
 		}
 
+		orderPrefix := strconv.Itoa(i+1) + ". "
+
 		if m.cursor == i {
-			s += "  " + selectionStyle.Align(lipgloss.Center).Render(choice)
+			s += "  " + selectionStyle.Align(lipgloss.Center).Render(orderPrefix+choice)
 		} else {
-			s += choice
+			s += orderPrefix + choice
 		}
 	}
 
@@ -127,7 +171,7 @@ func (m model) View() string {
 			Align(lipgloss.Center).
 			Render(grad)
 
-		chooseList := lipgloss.NewStyle().Align(lipgloss.Left).Width(maxChoiceLength + 2).Render(s)
+		chooseList := lipgloss.NewStyle().Align(lipgloss.Left).Width(maxChoiceLength + 4).Render(s)
 
 		choicesBox := dialogBoxStyle.
 			Width(70).
@@ -143,6 +187,33 @@ func (m model) View() string {
 		)
 
 		doc.WriteString(dialog + "\n\n")
+	}
+
+	{
+		w := lipgloss.Width
+
+		//lightDarkState := "Dark"
+
+		controlsText := "j/↑ - вгору, k/↓ - вниз, 1/2/3 - перейти на варіант N, enter - обрати, q - вийти"
+		//
+		//footer := lipgloss.NewStyle().Foreground(lipgloss.Color("#F25D94"))
+
+		pageKey := statusStyle.Render("WELCOME")
+		encoding := encodingStyle.Render("UTF-8")
+		lang := fishCakeStyle.Render("Ukrainian")
+		controls := statusText.
+			Width(m.pty.Window.Width - w(pageKey) - w(encoding) - w(lang)).
+			Align(lipgloss.Center).
+			Render(controlsText)
+
+		bar := lipgloss.JoinHorizontal(lipgloss.Top,
+			pageKey,
+			controls,
+			encoding,
+			lang,
+		)
+
+		doc.WriteString(statusBarStyle.Width(m.pty.Window.Width).Render(bar))
 	}
 
 	return docStyle.Render(doc.String())
