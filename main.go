@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
-	//tea "charm.land/bubbletea/v2"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/ssh"
@@ -66,16 +65,6 @@ var (
 
 	fishCakeStyle = statusNugget.Background(lipgloss.Color("#6124DF"))
 
-	// Floating thing.
-
-	//floatingStyle = lipgloss.NewStyle().
-	//		Italic(true).
-	//		Foreground(lipgloss.Color("#FFF7DB")).
-	//		Background(lipgloss.Color("#F25D94")).
-	//		Padding(1, 6).
-	//		Align(lipgloss.Center)
-
-	//docStyle = lipgloss.NewStyle().Padding(1, 2, 1, 2)
 	docStyle = lipgloss.NewStyle().Padding(0, 0, 0, 0)
 )
 
@@ -107,6 +96,7 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		log.Info("Updated window size", "width", msg.Width, "height", msg.Height)
 		m.width = msg.Width
 		m.height = msg.Height
 	case tea.KeyMsg:
@@ -158,63 +148,56 @@ func (m model) View() string {
 
 	doc := strings.Builder{}
 
-	{
-		grad := applyGradient(
-			lipgloss.NewStyle(),
-			banner,
-			lipgloss.Color("#EDFF82"),
-			lipgloss.Color("#F25D94"),
-		)
+	grad := applyGradient(
+		lipgloss.NewStyle(),
+		banner,
+		lipgloss.Color("#EDFF82"),
+		lipgloss.Color("#F25D94"),
+	)
 
-		header := lipgloss.NewStyle().
-			Width(70).
-			Align(lipgloss.Center).
-			Render(grad)
+	header := lipgloss.NewStyle().
+		Width(70).
+		Align(lipgloss.Center).
+		Render(grad)
 
-		chooseList := lipgloss.NewStyle().Align(lipgloss.Left).Width(maxChoiceLength + 4).Render(s)
+	chooseList := lipgloss.NewStyle().Align(lipgloss.Left).Width(maxChoiceLength + 4).Render(s)
 
-		choicesBox := dialogBoxStyle.
-			Width(70).
-			Align(lipgloss.Center).
-			Render(chooseList)
+	choicesBox := dialogBoxStyle.
+		Width(70).
+		Align(lipgloss.Center).
+		Render(chooseList)
 
-		ui := lipgloss.JoinVertical(lipgloss.Center, header, choicesBox)
+	ui := lipgloss.JoinVertical(lipgloss.Center, header, choicesBox)
 
-		dialog := lipgloss.Place(m.pty.Window.Width, m.pty.Window.Height,
-			lipgloss.Center, lipgloss.Center,
-			ui,
-			lipgloss.WithWhitespaceChars("  "),
-		)
+	dialog := lipgloss.Place(m.width, m.height,
+		lipgloss.Center, lipgloss.Center,
+		ui,
+		lipgloss.WithWhitespaceChars("  "),
+	)
 
-		doc.WriteString(dialog + "\n\n")
-	}
+	doc.WriteString(dialog + "\n\n")
 
-	{
-		w := lipgloss.Width
+	w := lipgloss.Width
 
-		//lightDarkState := "Dark"
+	controlsText := "\nj/↑ - вгору, k/↓ - вниз, 1/2/3 - перейти на варіант N, enter - обрати, q - вийти\n"
 
-		controlsText := "j/↑ - вгору, k/↓ - вниз, 1/2/3 - перейти на варіант N, enter - обрати, q - вийти"
-		//
-		//footer := lipgloss.NewStyle().Foreground(lipgloss.Color("#F25D94"))
+	pageKey := statusStyle.Render("\nMAIN\n")
+	encoding := encodingStyle.Render("\nUTF-8\n")
+	lang := fishCakeStyle.Render("\nUkrainian\n")
+	controls := statusText.
+		Width(m.width - w(pageKey) - w(encoding) - w(lang)).
+		Height(3).
+		Align(lipgloss.Center).
+		Render(controlsText)
 
-		pageKey := statusStyle.Render("WELCOME")
-		encoding := encodingStyle.Render("UTF-8")
-		lang := fishCakeStyle.Render("Ukrainian")
-		controls := statusText.
-			Width(m.pty.Window.Width - w(pageKey) - w(encoding) - w(lang)).
-			Align(lipgloss.Center).
-			Render(controlsText)
+	bar := lipgloss.JoinHorizontal(lipgloss.Top,
+		pageKey,
+		controls,
+		encoding,
+		lang,
+	)
 
-		bar := lipgloss.JoinHorizontal(lipgloss.Top,
-			pageKey,
-			controls,
-			encoding,
-			lang,
-		)
-
-		doc.WriteString(statusBarStyle.Width(m.pty.Window.Width).Render(bar))
-	}
+	doc.WriteString(statusBarStyle.Width(m.width).Render(bar))
 
 	return docStyle.Render(doc.String())
 }

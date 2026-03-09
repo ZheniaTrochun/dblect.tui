@@ -1,78 +1,10 @@
-// var express = require('express');
-// var logger = require('morgan');
-//
-// const http = require("http");
-// var SSHClient = require("ssh2").Client;
-// var utf8 = require("utf8");
-//
-// const app = express();
-//
-//
-// var serverPort = 5174;
-//
-// var server = http.createServer(app);
-//
-// app.use(logger('dev'));
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: false }));
-//
-// server.listen(serverPort);
-//
-// //socket.io instantiation
-// const io = require("socket.io")(server);
-//
-// //Socket Connection
-//
-// io.on("connection", function(socket) {
-//   var ssh = new SSHClient();
-//   ssh
-//       .on("ready", function() {
-//         socket.emit("data", "\r\n*** SSH CONNECTION ESTABLISHED ***\r\n");
-//         connected = true;
-//         ssh.shell(function(err, stream) {
-//           if (err)
-//             return socket.emit(
-//                 "data",
-//                 "\r\n*** SSH SHELL ERROR: " + err.message + " ***\r\n"
-//             );
-//           socket.on("data", function(data) {
-//             stream.write(data);
-//           });
-//           stream
-//               .on("data", function(d) {
-//                 socket.emit("data", utf8.decode(d.toString("binary")));
-//               })
-//               .on("close", function() {
-//                 ssh.end();
-//               });
-//         });
-//       })
-//       .on("close", function() {
-//         socket.emit("data", "\r\n*** SSH CONNECTION CLOSED ***\r\n");
-//       })
-//       .on("error", function(err) {
-//         console.log(err);
-//         socket.emit(
-//             "data",
-//             "\r\n*** SSH CONNECTION ERROR: " + err.message + " ***\r\n"
-//         );
-//       })
-//       .connect({
-//         host: "0.0.0.0",
-//         port: "23234", // Generally 22 but some server have diffrent port for security Reson
-//         username: "test_from_portal", // user name
-//           password: "pass"
-//       });
-// });
-
-
-
-
 const app = require('express')();
 const server = require('http').createServer(app);
+
 const io = require('socket.io')(server, {
     cors: { origin: "http://localhost:5173" }
 });
+
 const { Client: SSHClient } = require('ssh2');
 
 const SSH_HOST = 'localhost';
