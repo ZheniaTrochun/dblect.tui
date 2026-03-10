@@ -11,14 +11,14 @@ import (
 	"strconv"
 	"strings"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
+	"charm.land/wish/v2"
+	"charm.land/wish/v2/activeterm"
+	"charm.land/wish/v2/bubbletea"
+	"charm.land/wish/v2/logging"
 	"github.com/charmbracelet/ssh"
-	"github.com/charmbracelet/wish"
-	"github.com/charmbracelet/wish/activeterm"
-	"github.com/charmbracelet/wish/bubbletea"
-	"github.com/charmbracelet/wish/logging"
 	"net"
 	"os"
 	"os/signal"
@@ -39,8 +39,6 @@ var (
 			BorderLeft(true).
 			BorderRight(true).
 			BorderBottom(true)
-
-	// Status Bar.
 
 	statusNugget = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFFDF5")).
@@ -84,9 +82,13 @@ type model struct {
 	bg      string
 	pty     ssh.Pty
 
-	choices  []string
-	cursor   int
-	selected map[int]struct{}
+	choices []string
+	cursor  int
+	//selected map[int]struct{}
+
+	lectureView tea.Model
+
+	state int
 }
 
 func (m model) Init() tea.Cmd {
@@ -94,11 +96,17 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.state == 0 {
+		return m.lectureView.Update(msg)
+	}
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		log.Info("Updated window size", "width", msg.Width, "height", msg.Height)
 		m.width = msg.Width
 		m.height = msg.Height
+		updatedLectureView, _ := m.lectureView.Update(msg)
+		m.lectureView = updatedLectureView
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "й":
@@ -112,12 +120,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case "enter", "space", " ":
-			_, ok := m.selected[m.cursor]
-			if ok {
-				delete(m.selected, m.cursor)
-			} else {
-				m.selected[m.cursor] = struct{}{}
-			}
+			//_, ok := m.selected[m.cursor]
+			//if ok {
+			//	delete(m.selected, m.cursor)
+			//} else {
+			//	m.selected[m.cursor] = struct{}{}
+			//}
+			m.state = m.cursor
 		case "1":
 			m.cursor = 0
 		case "2":
@@ -130,7 +139,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) View() string {
+func (m model) View() tea.View {
+	if m.state == 0 {
+		return m.lectureView.View()
+	}
+
 	s := ""
 	for i, choice := range m.choices {
 		if i != 0 {
@@ -199,7 +212,11 @@ func (m model) View() string {
 
 	doc.WriteString(statusBarStyle.Width(m.width).Render(bar))
 
-	return docStyle.Render(doc.String())
+	//return docStyle.Render(doc.String())
+	v := tea.NewView(docStyle.Render(doc.String()))
+	v.AltScreen = true
+
+	return v
 }
 
 // applyGradient applies a gradient to the given string.
@@ -228,28 +245,25 @@ func applyGradient(base lipgloss.Style, input string, from, to color.Color) stri
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	pty, _, _ := s.Pty()
 
-	renderer := bubbletea.MakeRenderer(s)
-
-	bg := "light"
-	if renderer.HasDarkBackground() {
-		bg = "dark"
+	lecture := lecturesModel{
+		height: pty.Window.Height,
+		width:  pty.Window.Width,
 	}
 
 	model := model{
-		term:    pty.Term,
-		profile: renderer.ColorProfile().Name(),
-		bg:      bg,
-		pty:     pty,
+		term: pty.Term,
+		pty:  pty,
 
 		width:  pty.Window.Width,
 		height: pty.Window.Height,
 
-		choices:  []string{"Лекції", "Рейтинг", "Вправи SQL"},
-		cursor:   0,
-		selected: make(map[int]struct{}),
+		choices:     []string{"Лекції", "Рейтинг", "Вправи SQL"},
+		cursor:      0,
+		state:       -1,
+		lectureView: lecture,
 	}
 
-	return model, []tea.ProgramOption{tea.WithAltScreen()}
+	return model, []tea.ProgramOption{}
 }
 
 const (
