@@ -1,0 +1,27 @@
+app = 'dblect'
+primary_region = 'fra'
+
+[build]
+
+# HTTP service for static files
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+# SSH service on port 23234
+[[services]]
+  internal_port = 23234
+  protocol = "tcp"
+  auto_stop_machines = true
+  auto_start_machines = true
+
+  [[services.ports]]
+    port = 23234
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1

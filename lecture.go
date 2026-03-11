@@ -86,6 +86,8 @@ func (m lectureModel) Update(msg tea.Msg) (lectureModel, tea.Cmd) {
 		headerHeight := lipgloss.Height(m.headerView())
 		footerHeight := lipgloss.Height(m.footerView())
 		verticalMarginHeight := headerHeight + footerHeight
+		m.width = msg.Width
+		m.height = msg.Height
 
 		if !m.ready {
 			// Since this program is using the full size of the viewport we
@@ -152,6 +154,9 @@ func (m lectureModel) createViewport() viewport.Model {
 	}
 	v.HighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("238")).Background(lipgloss.Color("34"))
 	v.SelectedHighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("238")).Background(lipgloss.Color("47"))
+
+	v.SetWidth(m.width)
+	v.SetHeight(m.height - verticalMarginHeight)
 
 	return v
 }

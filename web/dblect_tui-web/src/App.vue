@@ -7,9 +7,10 @@
 
   onMounted(() => {
 
-    const socket = io('http://localhost:5174', { autoConnect: false });
+    const socket = io({ autoConnect: false });
 
-    const term = new Terminal({ cursorBlink: true, theme: { background: '#333' }, lineHeight: 1, fontSize: 10});
+    // const term = new Terminal({ cursorBlink: true, theme: { background: '#333' }, lineHeight: 1, fontSize: 10});
+    const term = new Terminal({ cursorBlink: true, theme: { background: '#333' }, lineHeight: 1, fontSize: 14});
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     const terminalContainer = document.getElementById('terminal-container');

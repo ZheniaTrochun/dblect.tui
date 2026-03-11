@@ -18,10 +18,13 @@ Backend:
 - Go app that serves TUI over SSH
 
 ## Is it ugly af?
-Yes.
+Yes.  
+Of course.
 
 ## Anything else?
 Nope.
 
 ## You can try to hack me here:
-TODO: add link
+https://dblect.fly.dev/   
+  
+P.S. please don't hack me
