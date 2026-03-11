@@ -1,4 +1,4 @@
-module lmsTui
+module dblect
 
 go 1.25.8
 
