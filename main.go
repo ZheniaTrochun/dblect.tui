@@ -26,9 +26,14 @@ type NavEvent struct {
 	navTo view
 }
 
+type OpenLecture struct {
+	name string
+}
+
 const (
 	homeView view = iota
 	lecturesView
+	lectureView
 )
 
 type model struct {
@@ -36,8 +41,9 @@ type model struct {
 	height int
 	pty    ssh.Pty
 
-	home    tea.Model
-	lecture tea.Model
+	home     tea.Model
+	lectures tea.Model
+	lecture  lectureModel
 
 	state view
 }
@@ -54,28 +60,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
-		updatedHome, _ := m.home.Update(msg)
-		updatedLectures, _ := m.lecture.Update(msg)
-
-		m.home = updatedHome
-		m.lecture = updatedLectures
-	}
-
-	var cmd tea.Cmd
-	var updatedView tea.Model
-
-	switch m.state {
-	case homeView:
-		updatedView, cmd = m.home.Update(msg)
-		m.home = updatedView
-	case lecturesView:
-		updatedView, cmd = m.lecture.Update(msg)
-		m.lecture = updatedView
+		m.home, _ = m.home.Update(msg)
+		m.lecture, _ = m.lecture.Update(msg)
+		m.lectures, _ = m.lectures.Update(msg)
 	}
 
 	switch msg := msg.(type) {
 	case NavEvent:
 		m.state = msg.navTo
+
+	case OpenLecture:
+		m.lecture.lecture = msg.name
+		m.state = lectureView
+	}
+
+	var cmd tea.Cmd
+
+	switch m.state {
+	case homeView:
+		m.home, cmd = m.home.Update(msg)
+	case lecturesView:
+		m.lectures, cmd = m.lectures.Update(msg)
+	case lectureView:
+		m.lecture, cmd = m.lecture.Update(msg)
 	}
 
 	return m, cmd
@@ -86,6 +93,8 @@ func (m model) View() tea.View {
 	case homeView:
 		return m.home.View()
 	case lecturesView:
+		return m.lectures.View()
+	case lectureView:
 		return m.lecture.View()
 	}
 
@@ -95,10 +104,12 @@ func (m model) View() tea.View {
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	pty, _, _ := s.Pty()
 
-	lecture := lecturesModel{
+	lecture := lectureModel{
 		height: pty.Window.Height,
 		width:  pty.Window.Width,
 	}
+
+	lectures := newLecturesModel(pty.Window.Width, pty.Window.Height)
 
 	home := homeModel{
 		height: pty.Window.Height,
@@ -113,9 +124,10 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		width:  pty.Window.Width,
 		height: pty.Window.Height,
 
-		state:   homeView,
-		lecture: lecture,
-		home:    home,
+		state:    homeView,
+		lectures: lectures,
+		lecture:  lecture,
+		home:     home,
 	}
 
 	return model, []tea.ProgramOption{}
