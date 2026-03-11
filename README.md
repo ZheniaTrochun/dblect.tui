@@ -17,6 +17,9 @@ Backend:
 **Actual** backend
 - Go app that serves TUI over SSH
 
+## Is it ugly af?
+Yes.
+
 ## Anything else?
 Nope.
 
