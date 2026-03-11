@@ -5,14 +5,8 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"github.com/rivo/uniseg"
-	"image/color"
-	"slices"
-	"strconv"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 	"charm.land/log/v2"
 	"charm.land/wish/v2"
 	"charm.land/wish/v2/activeterm"
@@ -26,69 +20,26 @@ import (
 	"time"
 )
 
-var (
-	selectionStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#F25D94")).
-			Underline(true)
+type view int
 
-	dialogBoxStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#874BFD")).
-			Padding(5, 5).
-			BorderTop(true).
-			BorderLeft(true).
-			BorderRight(true).
-			BorderBottom(true)
+type NavEvent struct {
+	navTo view
+}
 
-	statusNugget = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFFDF5")).
-			Padding(0, 1)
-
-	statusBarStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#C1C6B2")).
-			Background(lipgloss.Color("#353533"))
-
-	statusStyle = lipgloss.NewStyle().
-			Inherit(statusBarStyle).
-			Foreground(lipgloss.Color("#FFFDF5")).
-			Background(lipgloss.Color("#FF5F87")).
-			Padding(0, 1).
-			MarginRight(1)
-
-	encodingStyle = statusNugget.
-			Background(lipgloss.Color("#A550DF")).
-			Align(lipgloss.Right)
-
-	statusText = lipgloss.NewStyle().Inherit(statusBarStyle)
-
-	fishCakeStyle = statusNugget.Background(lipgloss.Color("#6124DF"))
-
-	docStyle = lipgloss.NewStyle().Padding(0, 0, 0, 0)
-)
-
-var (
-	choices       = []string{"Лекції", "Рейтинг", "Вправи SQL"}
-	longestChoice = slices.MaxFunc(choices, func(a, b string) int {
-		return len(a) - len(b)
-	})
-	maxChoiceLength = len(longestChoice)
+const (
+	homeView view = iota
+	lecturesView
 )
 
 type model struct {
-	term    string
-	profile string
-	width   int
-	height  int
-	bg      string
-	pty     ssh.Pty
+	width  int
+	height int
+	pty    ssh.Pty
 
-	choices []string
-	cursor  int
-	//selected map[int]struct{}
+	home    tea.Model
+	lecture tea.Model
 
-	lectureView tea.Model
-
-	state int
+	state view
 }
 
 func (m model) Init() tea.Cmd {
@@ -96,150 +47,49 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if m.state == 0 {
-		return m.lectureView.Update(msg)
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q":
+			return m, tea.Quit
+		}
+	case tea.WindowSizeMsg:
+		updatedHome, _ := m.home.Update(msg)
+		updatedLectures, _ := m.lecture.Update(msg)
+
+		m.home = updatedHome
+		m.lecture = updatedLectures
+	}
+
+	var cmd tea.Cmd
+	var updatedView tea.Model
+
+	switch m.state {
+	case homeView:
+		updatedView, cmd = m.home.Update(msg)
+		m.home = updatedView
+	case lecturesView:
+		updatedView, cmd = m.lecture.Update(msg)
+		m.lecture = updatedView
 	}
 
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		log.Info("Updated window size", "width", msg.Width, "height", msg.Height)
-		m.width = msg.Width
-		m.height = msg.Height
-		updatedLectureView, _ := m.lectureView.Update(msg)
-		m.lectureView = updatedLectureView
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q", "й":
-			return m, tea.Quit
-		case "up", "k", "л":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j", "о":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
-			}
-		case "enter", "space", " ":
-			//_, ok := m.selected[m.cursor]
-			//if ok {
-			//	delete(m.selected, m.cursor)
-			//} else {
-			//	m.selected[m.cursor] = struct{}{}
-			//}
-			m.state = m.cursor
-		case "1":
-			m.cursor = 0
-		case "2":
-			m.cursor = 1
-		case "3":
-			m.cursor = 2
-		}
+	case NavEvent:
+		m.state = msg.navTo
 	}
 
-	return m, nil
+	return m, cmd
 }
 
 func (m model) View() tea.View {
-	if m.state == 0 {
-		return m.lectureView.View()
+	switch m.state {
+	case homeView:
+		return m.home.View()
+	case lecturesView:
+		return m.lecture.View()
 	}
 
-	s := ""
-	for i, choice := range m.choices {
-		if i != 0 {
-			s += "\n\n"
-		}
-
-		orderPrefix := strconv.Itoa(i+1) + ". "
-
-		if m.cursor == i {
-			s += "  " + selectionStyle.Align(lipgloss.Center).Render(orderPrefix+choice)
-		} else {
-			s += orderPrefix + choice
-		}
-	}
-
-	doc := strings.Builder{}
-
-	grad := applyGradient(
-		lipgloss.NewStyle(),
-		banner,
-		lipgloss.Color("#EDFF82"),
-		lipgloss.Color("#F25D94"),
-	)
-
-	header := lipgloss.NewStyle().
-		Width(70).
-		Align(lipgloss.Center).
-		Render(grad)
-
-	chooseList := lipgloss.NewStyle().Align(lipgloss.Left).Width(maxChoiceLength + 4).Render(s)
-
-	choicesBox := dialogBoxStyle.
-		Width(70).
-		Align(lipgloss.Center).
-		Render(chooseList)
-
-	ui := lipgloss.JoinVertical(lipgloss.Center, header, choicesBox)
-
-	dialog := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		ui,
-		lipgloss.WithWhitespaceChars("  "),
-	)
-
-	doc.WriteString(dialog + "\n\n")
-
-	w := lipgloss.Width
-
-	controlsText := "\nj/↑ - вгору, k/↓ - вниз, 1/2/3 - перейти на варіант N, enter - обрати, q - вийти\n"
-
-	pageKey := statusStyle.Render("\nMAIN\n")
-	encoding := encodingStyle.Render("\nUTF-8\n")
-	lang := fishCakeStyle.Render("\nUkrainian\n")
-	controls := statusText.
-		Width(m.width - w(pageKey) - w(encoding) - w(lang)).
-		Height(3).
-		Align(lipgloss.Center).
-		Render(controlsText)
-
-	bar := lipgloss.JoinHorizontal(lipgloss.Top,
-		pageKey,
-		controls,
-		encoding,
-		lang,
-	)
-
-	doc.WriteString(statusBarStyle.Width(m.width).Render(bar))
-
-	//return docStyle.Render(doc.String())
-	v := tea.NewView(docStyle.Render(doc.String()))
-	v.AltScreen = true
-
-	return v
-}
-
-// applyGradient applies a gradient to the given string.
-func applyGradient(base lipgloss.Style, input string, from, to color.Color) string {
-	// We want to get the graphemes of the input string, which is the number of
-	// characters as a human would see them.
-	//
-	// We definitely don't want to use len(), because that returns the
-	// bytes. The rune count would get us closer but there are times, like with
-	// emojis, where the rune count is greater than the number of actual
-	// characters.
-	g := uniseg.NewGraphemes(input)
-	var chars []string
-	for g.Next() {
-		chars = append(chars, g.Str())
-	}
-
-	gradient := lipgloss.Blend1D(len(chars), from, to)
-	var output strings.Builder
-	for i, char := range chars {
-		output.WriteString(base.Foreground(gradient[i]).Render(char))
-	}
-	return output.String()
+	return tea.NewView("")
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
@@ -250,17 +100,22 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		width:  pty.Window.Width,
 	}
 
+	home := homeModel{
+		height: pty.Window.Height,
+		width:  pty.Window.Width,
+		pty:    pty,
+		cursor: 0,
+	}
+
 	model := model{
-		term: pty.Term,
-		pty:  pty,
+		pty: pty,
 
 		width:  pty.Window.Width,
 		height: pty.Window.Height,
 
-		choices:     []string{"Лекції", "Рейтинг", "Вправи SQL"},
-		cursor:      0,
-		state:       -1,
-		lectureView: lecture,
+		state:   homeView,
+		lecture: lecture,
+		home:    home,
 	}
 
 	return model, []tea.ProgramOption{}
@@ -270,9 +125,6 @@ const (
 	host = "localhost"
 	port = "23234"
 )
-
-//go:embed banner.txt
-var banner string
 
 func main() {
 

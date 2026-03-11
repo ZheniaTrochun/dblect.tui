@@ -1,15 +1,12 @@
 package main
 
 import (
-	"charm.land/glamour/v2"
-	"charm.land/log/v2"
 	_ "embed"
 	"fmt"
-	//"github.com/charmbracelet/bubbles/viewport"
 
-	//"github.com/charmbracelet/bubbles/viewport"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 	"strings"
 )
@@ -54,8 +51,10 @@ func (m lecturesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
-			return m, tea.Quit
+		if k := msg.String(); k == "esc" {
+			return m, func() tea.Msg {
+				return NavEvent{navTo: homeView}
+			}
 		}
 
 	case tea.WindowSizeMsg:
@@ -89,13 +88,10 @@ func (m lecturesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 			renderedLecture, _ := mdRenderer.Render(lectureSample)
 			m.viewport.SetContent(renderedLecture)
-			//m.viewport.SetContent(lectureSample)
-			//m.viewport.SetHighlights(regexp.MustCompile("БД").FindAllStringIndex(lectureSample, -1))
+
 			m.viewport.HighlightNext()
 
 			m.ready = true
-
-			log.Info("ready", "m.ready", m.ready)
 		} else {
 			m.viewport.SetWidth(msg.Width)
 			m.viewport.SetHeight(msg.Height - verticalMarginHeight)
