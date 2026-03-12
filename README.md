@@ -1,11 +1,11 @@
 # DBLECT.tui
 
 ## Web-based TUI app 
-Yes, that's right, this is a **web** TUI app ¯\\\_(ツ)\_/¯
+Yes, that's right, this is a **web** **Terminal** User Interface app ¯\\\_(ツ)\_/¯
 
 ## But why?
 - Because I can
-- I want to build a site
+- I wanted to build a site
 - But I hate html and css from the bottom of my heart 
 
 ## But how?
