@@ -4,6 +4,7 @@
 Yes, that's right, this is a **web** TUI app ¯\\\_(ツ)\_/¯
 
 ## But why?
+- Because I can
 - I want to build a site
 - But I hate html and css from the bottom of my heart 
 
