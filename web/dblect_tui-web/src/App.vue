@@ -30,13 +30,16 @@
       }
     });
 
+    fitAddon.fit();
+
     socket.on('connect', () => socket.emit('resize', { cols: term.cols, rows: term.rows }));
     socket.on('disconnect', () => term.dispose());
 
-    fitAddon.fit();
-    term.focus();
+    setTimeout(() => {
+      term.focus();
 
-    socket.connect();
+      socket.connect();
+    }, 250);
   })
 </script>
 
