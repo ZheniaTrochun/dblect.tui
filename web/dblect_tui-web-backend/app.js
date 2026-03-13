@@ -27,7 +27,6 @@ io.on('connection', socket => {
         .on('end', () => console.log('SSH end'))
         .on('error', err => console.error('SSH error:', err))
         .on('ready', () => {
-            socket.emit('data', '\r\n*** SSH CONNECTION ESTABLISHED ***\r\n');
             ssh.shell({ term: 'xterm-256color', cols, rows }, (err, stream) => {
                 if (err) {
                     socket.emit('data', '\r\n*** SSH SHELL ERROR: ' + err.message + ' ***\r\n');

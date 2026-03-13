@@ -31,13 +31,23 @@
     });
 
     socket.on('connect', () => socket.emit('resize', { cols: term.cols, rows: term.rows }));
-    socket.on('disconnect', () => term.dispose());
+
+    socket.on('disconnect', () => {
+      term.clear()
+      term.write("Disconnected")
+      // term.dispose()
+      socket.connect()
+    });
 
     term.focus();
     socket.connect();
 
     setTimeout(() => {
       fitAddon.fit();
+    }, 250);
+
+    setTimeout(() => {
+      socket.emit('resize', { cols: term.cols, rows: term.rows })
     }, 250);
   })
 </script>
