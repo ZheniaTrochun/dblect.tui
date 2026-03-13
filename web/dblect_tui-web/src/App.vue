@@ -35,8 +35,7 @@
     socket.on('disconnect', () => {
       term.clear()
       term.write("Disconnected")
-      // term.dispose()
-      socket.connect()
+      term.dispose()
     });
 
     term.focus();

@@ -34,7 +34,10 @@ io.on('connection', socket => {
                 }
 
                 socket.on('data', data => stream.write(data));
-                socket.on('resize', ({ cols, rows }) => stream.setWindow(rows, cols, 0, 0));
+                socket.on('resize', ({ cols, rows }) => {
+                    console.log(`resize event received, cols: ${cols}, rows: ${rows}`)
+                    stream.setWindow(rows, cols, 0, 0)
+                });
 
                 stream
                     .on('data', data => socket.emit('data', data))
