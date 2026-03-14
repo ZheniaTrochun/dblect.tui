@@ -3,11 +3,15 @@ const winston = require('winston')
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.combine(
-        winston.format.timestamp(),
+        winston.format.timestamp({ format: 'HH:mm:ss' }),
         winston.format.errors({ stack: true }),
         winston.format.colorize(),
-        winston.format.simple()
-    )
+        winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
+            const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : ''
+            return `${timestamp} [${level}] ${message}${metaStr}${stack ? '\n' + stack : ''}`
+        })
+    ),
+    transports: [new winston.transports.Console()]
 })
 
 const server = require('http').createServer()
@@ -30,7 +34,7 @@ const MIN_ALLOWED_SCREEN_SIZE = 24
 io.on('connection', socket => {
     const mdc = {
         socketId: socket.id,
-        address: socket.handshake.headers["X-Real-IP"],
+        address: socket.handshake.headers["x-real-ip"],
         username: socket.handshake.query.username
     }
 

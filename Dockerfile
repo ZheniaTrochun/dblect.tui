@@ -27,9 +27,9 @@ WORKDIR /content
 RUN git clone https://github.com/ZheniaTrochun/db-intro-course.git
 
 
-FROM node:22-slim
+FROM node:22-alpine
 
-RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/* && rm -f /etc/nginx/sites-enabled/default
+RUN apk add --nocache nginx && rm -f /etc/nginx/http.d/default.conf && rm -f /etc/nginx/sites-enabled/default
 
 COPY --from=builder /usr/src/app/web/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY --from=builder /dblect /usr/local/bin/
