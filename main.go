@@ -106,7 +106,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 
 	user := s.User()
 
-	log.Info("New connection established", "user", user)
+	log.Info("New connection established", "User", user)
 
 	lecture := lectureModel{
 		height: pty.Window.Height,

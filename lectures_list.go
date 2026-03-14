@@ -65,7 +65,6 @@ func readAvailableLectures() ([]string, error) {
 	var lectureNames = make([]string, len(lectureDirs))
 
 	for i, lectureDir := range lectureDirs {
-		log.Info(lectureDir.Name(), "isDir", lectureDir.IsDir())
 		lectureNames[i] = lectureDir.Name()
 	}
 

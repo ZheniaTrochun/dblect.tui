@@ -10,7 +10,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"charm.land/log/v2"
 	"github.com/charmbracelet/ssh"
 )
 
@@ -86,7 +85,6 @@ func (m homeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		log.Info("Updated window size", "width", msg.Width, "height", msg.Height)
 		m.width = msg.Width
 		m.height = msg.Height
 	case tea.KeyMsg:

@@ -26,8 +26,6 @@ var (
 		b.Left = "┤"
 		return titleStyle.BorderStyle(b)
 	}()
-
-	mdRenderer, _ = glamour.NewTermRenderer(glamour.WithStandardStyle("dracula"))
 )
 
 var (
@@ -71,7 +69,7 @@ func (m lectureModel) Update(msg tea.Msg) (lectureModel, tea.Cmd) {
 		m.viewport = m.createViewport()
 
 		if lectureContent, ok := lecturesMap[m.lecture]; ok {
-			mdRenderer, _ = glamour.NewTermRenderer(
+			mdRenderer, _ := glamour.NewTermRenderer(
 				glamour.WithStandardStyle("dracula"),
 				glamour.WithWordWrap(m.width-10),
 			)
