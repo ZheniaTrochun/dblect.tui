@@ -29,7 +29,7 @@ var (
 )
 
 var (
-	lecturesMap, err = readAllLectures(os.DirFS("."))
+	lecturesMap, initialReadErr = readAllLectures(os.DirFS("."))
 )
 
 type lectureModel struct {
@@ -60,22 +60,37 @@ func (m lectureModel) Update(msg tea.Msg) (lectureModel, tea.Cmd) {
 		}
 
 	case OpenLecture:
-		if err != nil {
-			log.Error("Failed to open lecture: %v", err)
+		if initialReadErr != nil {
+			log.Error("Failed to open lecture", "Error", initialReadErr)
 			return m, tea.Quit
 		}
+
 		m.lecture = msg.name
 
 		m.viewport = m.createViewport()
 
 		if lectureContent, ok := lecturesMap[m.lecture]; ok {
-			mdRenderer, _ := glamour.NewTermRenderer(
+			mdRenderer, err := glamour.NewTermRenderer(
 				glamour.WithStandardStyle("dracula"),
 				glamour.WithWordWrap(m.width-10),
 			)
-			renderedLecture, _ := mdRenderer.Render(lectureContent)
+			if err != nil {
+				log.Error("Failed to create glamour renderer", "Error", err)
+				return m, tea.Quit
+			}
+
+			renderedLecture, err := mdRenderer.Render(lectureContent)
+			if err != nil {
+				log.Error("Failed to render lecture content", "Error", err)
+				return m, tea.Quit
+			}
 
 			m.viewport.SetContent(renderedLecture)
+		} else {
+			log.Error("Failed to find lecture", "lecture", m.lecture)
+			return m, func() tea.Msg {
+				return NavEvent{navTo: lecturesView}
+			}
 		}
 
 		m.ready = true
@@ -88,11 +103,6 @@ func (m lectureModel) Update(msg tea.Msg) (lectureModel, tea.Cmd) {
 		m.height = msg.Height
 
 		if !m.ready {
-			// Since this program is using the full size of the viewport we
-			// need to wait until we've received the window dimensions before
-			// we can initialize the viewport. The initial dimensions come in
-			// quickly, though asynchronously, which is why we wait for them
-			// here.
 			m.viewport = m.createViewport()
 
 			m.ready = true
@@ -153,9 +163,6 @@ func (m lectureModel) createViewport() viewport.Model {
 	v.HighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("238")).Background(lipgloss.Color("34"))
 	v.SelectedHighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("238")).Background(lipgloss.Color("47"))
 
-	v.SetWidth(m.width)
-	v.SetHeight(m.height - verticalMarginHeight)
-
 	return v
 }
 
@@ -182,7 +189,7 @@ func readAllLectures(fsys fs.FS) (map[string]string, error) {
 
 		if err != nil {
 			log.Error("Failed to read lecture", "name", name, "err", err)
-			return result, err
+			return make(map[string]string), err
 		}
 
 		result[name] = content

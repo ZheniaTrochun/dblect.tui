@@ -10,8 +10,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+// todo: extract to a separate file
 var (
-	lectures, _ = readAvailableLectures()
+	lectures, lecturesReadErr = readAvailableLectures()
 )
 
 type item struct {
@@ -62,10 +63,12 @@ func readAvailableLectures() ([]string, error) {
 		return make([]string, 0), err
 	}
 
-	var lectureNames = make([]string, len(lectureDirs))
+	var lectureNames []string
 
-	for i, lectureDir := range lectureDirs {
-		lectureNames[i] = lectureDir.Name()
+	for _, lectureDir := range lectureDirs {
+		if lectureDir.IsDir() {
+			lectureNames = append(lectureNames, lectureDir.Name())
+		}
 	}
 
 	return lectureNames, nil
@@ -76,6 +79,10 @@ func (m lecturesModel) Init() tea.Cmd {
 }
 
 func (m lecturesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if lecturesReadErr != nil {
+		return m, tea.Quit
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {

@@ -1,11 +1,6 @@
 package main
 
 import (
-	"context"
-	_ "embed"
-	"errors"
-	"fmt"
-
 	tea "charm.land/bubbletea/v2"
 	"charm.land/log/v2"
 	"charm.land/wish/v2"
@@ -13,6 +8,10 @@ import (
 	"charm.land/wish/v2/bubbletea"
 	"charm.land/wish/v2/logging"
 	"github.com/charmbracelet/ssh"
+
+	"context"
+	_ "embed"
+	"errors"
 	"net"
 	"os"
 	"os/signal"
@@ -53,6 +52,9 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -60,9 +62,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
-		m.home, _ = m.home.Update(msg)
-		m.lecture, _ = m.lecture.Update(msg)
-		m.lectures, _ = m.lectures.Update(msg)
+		m.home, cmd = m.home.Update(msg)
+		cmds = append(cmds, cmd)
+		m.lecture, cmd = m.lecture.Update(msg)
+		cmds = append(cmds, cmd)
+		m.lectures, cmd = m.lectures.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	switch msg := msg.(type) {
@@ -70,11 +75,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = msg.navTo
 
 	case OpenLecture:
-		m.lecture.lecture = msg.name
 		m.state = lectureView
 	}
-
-	var cmd tea.Cmd
 
 	switch m.state {
 	case homeView:
@@ -83,9 +85,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lectures, cmd = m.lectures.Update(msg)
 	case lectureView:
 		m.lecture, cmd = m.lecture.Update(msg)
+	default:
+		log.Error("Unexpected navigation state", "State", m.state)
+		m.state = homeView
+		m.home, cmd = m.home.Update(msg)
 	}
 
-	return m, cmd
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) View() tea.View {
@@ -96,13 +104,20 @@ func (m model) View() tea.View {
 		return m.lectures.View()
 	case lectureView:
 		return m.lecture.View()
+	default:
+		log.Error("Unexpected navigation state", "State", m.state)
+		m.state = homeView
+		return m.home.View()
 	}
-
-	return tea.NewView("")
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-	pty, _, _ := s.Pty()
+	pty, _, ok := s.Pty()
+	if !ok {
+		log.Error("Client connected without PTY - connection refused", "User", s.User())
+		_ = s.Exit(1)
+		return nil, nil
+	}
 
 	user := s.User()
 
@@ -158,7 +173,7 @@ func main() {
 	)
 
 	if err != nil {
-		fmt.Println("UNRECOVERABLE ERRRRROOOORRRRRR: %s", err)
+		log.Error("UNRECOVERABLE ERRRRROOOORRRRRR", "Error", err)
 		os.Exit(1)
 	}
 
@@ -181,5 +196,6 @@ func main() {
 
 	if err := s.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
 		log.Error("Could not shutdown server", "Error", err)
+		os.Exit(1)
 	}
 }

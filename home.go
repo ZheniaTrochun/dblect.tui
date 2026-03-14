@@ -62,9 +62,9 @@ var (
 	choiceToNav = map[string]view{choices[0]: lecturesView, choices[1]: homeView, choices[2]: homeView}
 
 	longestChoice = slices.MaxFunc(choices, func(a, b string) int {
-		return len(a) - len(b)
+		return lipgloss.Width(a) - lipgloss.Width(b)
 	})
-	maxChoiceLength = len(longestChoice)
+	maxChoiceLength = lipgloss.Width(longestChoice)
 )
 
 type homeModel struct {
@@ -89,8 +89,6 @@ func (m homeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q", "й":
-			return m, tea.Quit
 		case "up", "k", "л":
 			if m.cursor > 0 {
 				m.cursor--
@@ -168,7 +166,7 @@ func (m homeModel) View() tea.View {
 
 	w := lipgloss.Width
 
-	controlsText := "\nj/↑ - вгору, k/↓ - вниз, 1/2/3 - перейти на варіант N, enter - обрати, q - вийти\n"
+	controlsText := "\nk/↑ - вгору, j/↓ - вниз, 1/2/3 - перейти на варіант N, enter - обрати, q - вийти\n"
 
 	pageKey := statusStyle.Render("\nMAIN\n")
 	encoding := encodingStyle.Render("\nUTF-8\n")
