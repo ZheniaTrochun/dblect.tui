@@ -7,14 +7,14 @@
 
   onMounted(() => {
 
-    const socket = io({ autoConnect: false });
-
-    // const term = new Terminal({ cursorBlink: true, theme: { background: '#333' }, lineHeight: 1, fontSize: 10});
     const term = new Terminal({ cursorBlink: true, theme: { background: '#333' }, lineHeight: 1, fontSize: 14});
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     const terminalContainer = document.getElementById('terminal-container');
     term.open(terminalContainer);
+    fitAddon.fit();
+
+    const socket = io({ autoConnect: false, query: { cols: term.cols, rows: term.rows } });
 
     term.onResize(({ cols, rows }) => socket.emit('resize', { cols, rows }));
     window.addEventListener('resize', () => fitAddon.fit());
@@ -25,29 +25,17 @@
       if (data instanceof ArrayBuffer) {
         term.write(new Uint8Array(data));
       } else {
-        console.log(data)
         term.write(data);
       }
     });
 
-    socket.on('connect', () => socket.emit('resize', { cols: term.cols, rows: term.rows }));
-
     socket.on('disconnect', () => {
       term.clear()
       term.write("Disconnected")
-      term.dispose()
     });
 
     term.focus();
     socket.connect();
-
-    setTimeout(() => {
-      fitAddon.fit();
-    }, 250);
-
-    setTimeout(() => {
-      socket.emit('resize', { cols: term.cols, rows: term.rows })
-    }, 250);
   })
 </script>
 
