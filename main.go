@@ -104,6 +104,10 @@ func (m model) View() tea.View {
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	pty, _, _ := s.Pty()
 
+	user := s.User()
+
+	log.Info("New connection established", "user", user)
+
 	lecture := lectureModel{
 		height: pty.Window.Height,
 		width:  pty.Window.Width,
@@ -144,9 +148,6 @@ func main() {
 		wish.WithAddress(net.JoinHostPort(host, port)),
 		wish.WithHostKeyPath("./ssh-keys/id_ed25519"),
 		wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
-			return true
-		}),
-		wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
 			return true
 		}),
 		wish.WithMiddleware(

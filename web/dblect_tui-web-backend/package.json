@@ -7,12 +7,9 @@
     "dev": "node app.js"
   },
   "dependencies": {
-    "debug": "~2.6.9",
     "express": "^4.16.4",
-    "morgan": "~1.9.1",
-    "node-pty": "^1.1.0",
+    "pino": "^10.3.1",
     "socket.io": "^4.8.3",
-    "ssh2": "^1.17.0",
-    "utf8": "^3.0.0"
+    "ssh2": "^1.17.0"
   }
 }

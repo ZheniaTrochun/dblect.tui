@@ -4,6 +4,10 @@
   import { FitAddon } from '@xterm/addon-fit';
   import {onMounted, onUnmounted, ref} from "vue";
   import {io} from 'socket.io-client'
+  import ssh from 'micro-key-producer/ssh.js'
+  import { randomBytes } from 'micro-key-producer/utils.js';
+
+  const SSH_KEYS_KEY = "DBLECT.tui_keys"
 
   const terminalContainer = ref(null)
 
@@ -19,13 +23,15 @@
     fitAddon.fit()
     window.addEventListener('resize', () => fitAddon.fit())
 
-    socket = setupSocket(term)
+    const creds = checkIfKeysExist() ? getKeys() : generateKeysPair()
+
+    socket = setupSocket(term, creds)
 
     socket.on("disconnect", () => {
       console.log("Socket disconnected, retry connection in 1 sec")
       backgroundReconnect = setTimeout(() => {
         console.log("Retrying socket connection")
-        socket = setupSocket(term)
+        socket = setupSocket(term, creds)
         socket.connect()
       }, 1000)
     })
@@ -46,8 +52,13 @@
     term.dispose()
   })
 
-  function setupSocket(term) {
-    const socket = io({ autoConnect: false, query: { cols: term.cols, rows: term.rows } })
+  function setupSocket(term, credentials) {
+    const socket = io({ autoConnect: false, query: {
+        cols: term.cols,
+        rows: term.rows,
+        username: credentials.username,
+        key: credentials.privateKey
+    } })
 
     term.onResize(({ cols, rows }) => socket.emit('resize', { cols, rows }))
     term.onData(data => socket.emit('data', data))
@@ -72,6 +83,35 @@
     })
 
     return socket
+  }
+
+  function checkIfKeysExist() {
+    return !!localStorage.getItem(SSH_KEYS_KEY)
+  }
+
+  function generateKeysPair() {
+    const username = prompt("Please let me know who are you.")
+
+    const seed = randomBytes(32)
+    const {fingerprint, publicKey, privateKey} = ssh(seed, username)
+
+    const creds = {
+      username,
+      fingerprint,
+      publicKey,
+      privateKey
+    }
+
+    const serializedCreds = JSON.stringify(creds)
+
+    localStorage.setItem(SSH_KEYS_KEY, serializedCreds)
+
+    return creds
+  }
+
+  function getKeys() {
+    const serializedCreds = localStorage.getItem(SSH_KEYS_KEY)
+    return JSON.parse(serializedCreds)
   }
 </script>
 
