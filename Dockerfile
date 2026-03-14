@@ -31,7 +31,7 @@ FROM node:22-slim
 
 RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/* && rm -f /etc/nginx/sites-enabled/default
 
-COPY --from=builder /usr/src/app/web/nginx/nginx.conf /etc/nginx/conf.d/nginx.conf
+COPY --from=builder /usr/src/app/web/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY --from=builder /dblect /usr/local/bin/
 COPY --from=frontend-builder /app/dist/ /app/public/
 COPY --from=frontend-builder /app-be/ /app/web-be/
