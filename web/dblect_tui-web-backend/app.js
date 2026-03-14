@@ -1,10 +1,21 @@
-const logger = require('pino')()
+const winston = require('winston')
+
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.errors({ stack: true }),
+        winston.format.colorize(),
+        winston.format.simple()
+    )
+})
+
 const server = require('http').createServer()
 
-const originHost = process.env.ORIGIN_HOST || "http://localhost:5173"
+const ORIGIN_HOST = process.env.ORIGIN_HOST || "http://localhost:5173"
 
 const io = require('socket.io')(server, {
-    cors: { origin: originHost }
+    cors: { origin: ORIGIN_HOST }
 });
 
 const { Client: SSHClient } = require('ssh2')
@@ -19,11 +30,11 @@ const MIN_ALLOWED_SCREEN_SIZE = 24
 io.on('connection', socket => {
     const mdc = {
         socketId: socket.id,
-        address: socket.handshake.address,
+        address: socket.handshake.headers["X-Real-IP"],
         username: socket.handshake.query.username
     }
 
-    logger.info(mdc, 'Frontend connected, opening SSH tunnel...')
+    logger.info('Frontend connected, opening SSH tunnel...', mdc)
 
     const cols = clampSize(parseInt(socket.handshake.query.cols) || 80)
     const rows = clampSize(parseInt(socket.handshake.query.rows) || 24)
@@ -32,7 +43,7 @@ io.on('connection', socket => {
     const key = socket.handshake.query.key
 
     if (!username || !key) {
-        logger.error(mdc, "username and/or ssh key is not provided")
+        logger.error("username and/or ssh key is not provided", mdc)
         socket.disconnect(true)
         return
     }
@@ -44,7 +55,7 @@ io.on('connection', socket => {
         .on('close', () => socket.disconnect(true))
         .on('end', () => socket.disconnect(true))
         .on('error', err => {
-            logger.error({ ...mdc, err }, "SSH error")
+            logger.error("SSH error", { ...mdc, err })
             socket.emit('data', '\r\n*** SSH CONNECTION ERROR: ' + err.message + ' ***\r\n')
             ssh.end()
             socket.disconnect(true)
@@ -52,7 +63,7 @@ io.on('connection', socket => {
         .on('ready', () => {
             ssh.shell({ term: 'xterm-256color', cols, rows }, (err, stream) => {
                 if (err) {
-                    logger.error({ ...mdc, err }, "SSH shell error")
+                    logger.error("SSH shell error", { ...mdc, err })
                     socket.emit('data', '\r\n*** SSH SHELL ERROR: ' + err.message + ' ***\r\n')
                     ssh.end()
                     socket.disconnect(true)
@@ -77,7 +88,7 @@ io.on('connection', socket => {
                 stream
                     .on('data', data => socket.emit('data', data))
                     .on('error', err => {
-                        logger.error({ ...mdc, err }, "SSH stream error")
+                        logger.error("SSH stream error", { ...mdc, err })
                         socket.emit('data', `\r\n*** STREAM ERROR: ${err.message} ***\r\n`)
                         ssh.end()
                         socket.disconnect(true)
@@ -93,24 +104,24 @@ io.on('connection', socket => {
         })
 
     socket.on('disconnect', () => {
-        logger.info(mdc, "Frontend disconnected, closing SSH tunnel.")
+        logger.info("Frontend disconnected, closing SSH tunnel.", mdc)
         try {
             ssh.end()
         } catch (err) {
-            logger.error({ ...mdc, err }, "Failed to close ssh connection")
+            logger.error("Failed to close ssh connection", { ...mdc, err })
         }
     })
 })
 
 server.listen(SERVER_PORT, () => {
-    logger.info({ port: SERVER_PORT }, "Web backend app started")
+    logger.info("Web backend app started", { port: SERVER_PORT })
 })
 
 server.on('error', err => {
     if (err.code === 'EADDRINUSE') {
-        logger.info({ port: SERVER_PORT, err }, "Port is already in use")
+        logger.info("Port is already in use", { port: SERVER_PORT, err })
     } else {
-        logger.info({ port: SERVER_PORT, err }, "Failed to start application")
+        logger.info("Failed to start application", { port: SERVER_PORT, err })
     }
     process.exit(1)
 })
