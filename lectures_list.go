@@ -35,13 +35,11 @@ func newLecturesModel(width, height int) lecturesModel {
 	lectureItems := make([]item, len(lectures))
 	for i, lecture := range lectures {
 		lectureItems[i] = item{title: lecture}
-		log.Info("lect 1", "lecture", lecture)
 	}
 
 	listLectureItems := make([]list.Item, len(lectures))
 	for i, lecture := range lectureItems {
 		listLectureItems[i] = lecture
-		log.Info("lect 2", "lecture", lecture)
 	}
 
 	listModel := list.New(listLectureItems, list.NewDefaultDelegate(), 0, 0)
@@ -89,7 +87,6 @@ func (m lecturesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "enter":
 			i, ok := m.lecturesList.SelectedItem().(item)
-			log.Info("Enter pressed", "i", i, "ok", ok)
 			if ok {
 				return m, func() tea.Msg {
 					return OpenLecture{i.title}
