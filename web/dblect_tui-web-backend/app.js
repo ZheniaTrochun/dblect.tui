@@ -1,6 +1,5 @@
-const app = require('express')()
 const logger = require('pino')()
-const server = require('http').createServer(app)
+const server = require('http').createServer()
 
 const originHost = process.env.ORIGIN_HOST || "http://localhost:5173"
 

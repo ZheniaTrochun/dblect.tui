@@ -7,7 +7,6 @@
     "dev": "node app.js"
   },
   "dependencies": {
-    "express": "^4.16.4",
     "pino": "^10.3.1",
     "socket.io": "^4.8.3",
     "ssh2": "^1.17.0"
