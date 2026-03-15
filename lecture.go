@@ -45,7 +45,7 @@ func (m lectureModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m lectureModel) Update(msg tea.Msg) (lectureModel, tea.Cmd) {
+func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd

@@ -62,9 +62,9 @@ var (
 	choiceToNav = map[string]view{choices[0]: lecturesView, choices[1]: homeView, choices[2]: homeView}
 
 	longestChoice = slices.MaxFunc(choices, func(a, b string) int {
-		return lipgloss.Width(a) - lipgloss.Width(b)
+		return len(a) - len(b)
 	})
-	maxChoiceLength = lipgloss.Width(longestChoice)
+	maxChoiceLength = len(longestChoice)
 )
 
 type homeModel struct {

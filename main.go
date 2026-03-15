@@ -42,7 +42,7 @@ type model struct {
 
 	home     tea.Model
 	lectures tea.Model
-	lecture  lectureModel
+	lecture  tea.Model
 
 	state view
 }

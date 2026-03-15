@@ -35,7 +35,7 @@ io.on('connection', socket => {
     const mdc = {
         socketId: socket.id,
         address: socket.handshake.headers["x-real-ip"],
-        username: socket.handshake.query.username
+        username: socket.handshake.auth.username
     }
 
     logger.info('Frontend connected, opening SSH tunnel...', mdc)
@@ -43,8 +43,8 @@ io.on('connection', socket => {
     const cols = clampSize(parseInt(socket.handshake.query.cols) || 80)
     const rows = clampSize(parseInt(socket.handshake.query.rows) || 24)
 
-    const username = socket.handshake.query.username
-    const key = socket.handshake.query.key
+    const username = socket.handshake.auth.username
+    const key = socket.handshake.auth.key
 
     if (!username || !key) {
         logger.error("username and/or ssh key is not provided", mdc)
@@ -55,7 +55,7 @@ io.on('connection', socket => {
     const ssh = new SSHClient();
 
     ssh
-        .on('banner', msg => socket.emit(msg))
+        .on('banner', msg => socket.emit('data', msg))
         .on('close', () => socket.disconnect(true))
         .on('end', () => socket.disconnect(true))
         .on('error', err => {
@@ -83,7 +83,7 @@ io.on('connection', socket => {
                 socket.on('resize', ({ cols, rows }) => {
                     if (typeof cols === 'number' &&
                         typeof rows === 'number' &&
-                        stream.writtable) {
+                        stream.writable) {
 
                         stream.setWindow(clampSize(rows), clampSize(cols), 0, 0)
                     }

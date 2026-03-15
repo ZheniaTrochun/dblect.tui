@@ -21,7 +21,7 @@
   onMounted(() => {
     term.open(terminalContainer.value)
     fitAddon.fit()
-    window.addEventListener('resize', () => fitAddon.fit())
+    window.addEventListener('resize', handleWindowResize)
 
     const creds = checkIfKeysExist() ? getKeys() : generateKeysPair()
 
@@ -49,16 +49,20 @@
       clearTimeout(backgroundReconnect)
     }
 
+    window.removeEventListener('resize', handleWindowResize)
+
     term.dispose()
   })
 
   function setupSocket(term, credentials) {
     const socket = io({ autoConnect: false, query: {
         cols: term.cols,
-        rows: term.rows,
+        rows: term.rows
+    },
+    auth: {
         username: credentials.username,
         key: credentials.privateKey
-    } })
+    }})
 
     term.onResize(({ cols, rows }) => socket.emit('resize', { cols, rows }))
     term.onData(data => socket.emit('data', data))
@@ -112,6 +116,10 @@
   function getKeys() {
     const serializedCreds = localStorage.getItem(SSH_KEYS_KEY)
     return JSON.parse(serializedCreds)
+  }
+
+  function handleWindowResize() {
+    fitAddon.fit()
   }
 </script>
 
