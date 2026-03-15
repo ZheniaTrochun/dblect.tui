@@ -1,16 +1,16 @@
 package main
 
 import (
-	"charm.land/log/v2"
-	"fmt"
-	"io/fs"
-	"os"
-	"path/filepath"
-
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
+	"charm.land/log/v2"
+
+	"fmt"
+	"io/fs"
+	"os"
+	"path"
 	"strings"
 )
 
@@ -96,19 +96,15 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.ready = true
 
 	case tea.WindowSizeMsg:
-		headerHeight := lipgloss.Height(m.headerView())
-		footerHeight := lipgloss.Height(m.footerView())
-		verticalMarginHeight := headerHeight + footerHeight
 		m.width = msg.Width
 		m.height = msg.Height
 
 		if !m.ready {
 			m.viewport = m.createViewport()
-
 			m.ready = true
 		} else {
 			m.viewport.SetWidth(msg.Width)
-			m.viewport.SetHeight(msg.Height - verticalMarginHeight)
+			m.viewport.SetHeight(msg.Height - lipgloss.Height(m.headerView()) - lipgloss.Height(m.footerView()))
 		}
 	}
 
@@ -199,7 +195,7 @@ func readAllLectures(fsys fs.FS) (map[string]string, error) {
 }
 
 func readLectureContentByName(fsys fs.FS, name string) (string, error) {
-	bytes, err := fs.ReadFile(fsys, filepath.Join("lectures", name, "lecture_notes.md"))
+	bytes, err := fs.ReadFile(fsys, path.Join("lectures", name, "lecture_notes.md"))
 	if err != nil {
 		return "", err
 	}

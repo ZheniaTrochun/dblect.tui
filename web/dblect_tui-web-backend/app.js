@@ -123,9 +123,9 @@ server.listen(SERVER_PORT, () => {
 
 server.on('error', err => {
     if (err.code === 'EADDRINUSE') {
-        logger.info("Port is already in use", { port: SERVER_PORT, err })
+        logger.error("Port is already in use", { port: SERVER_PORT, err })
     } else {
-        logger.info("Failed to start application", { port: SERVER_PORT, err })
+        logger.error("Failed to start application", { port: SERVER_PORT, err })
     }
     process.exit(1)
 })

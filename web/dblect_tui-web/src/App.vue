@@ -17,6 +17,7 @@
 
   let socket
   let backgroundReconnect
+  let termDisposables = []
 
   onMounted(() => {
     term.open(terminalContainer.value)
@@ -25,19 +26,22 @@
 
     const creds = checkIfKeysExist() ? getKeys() : generateKeysPair()
 
-    socket = setupSocket(term, creds)
+    const connectWithRetry = () => {
+      socket = setupSocket(term, creds)
 
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected, retry connection in 1 sec")
-      backgroundReconnect = setTimeout(() => {
-        console.log("Retrying socket connection")
-        socket = setupSocket(term, creds)
-        socket.connect()
-      }, 1000)
-    })
+      socket.on("disconnect", () => {
+        console.log("Socket disconnected, retry connection in 1 sec")
+        backgroundReconnect = setTimeout(() => {
+          console.log("Retrying socket connection")
+          connectWithRetry()
+        }, 1000)
+      })
 
-    term.focus();
-    socket.connect();
+      socket.connect()
+    }
+
+    term.focus()
+    connectWithRetry()
   })
 
   onUnmounted(() => {
@@ -51,10 +55,15 @@
 
     window.removeEventListener('resize', handleWindowResize)
 
+    termDisposables.forEach(d => d.dispose())
+
     term.dispose()
   })
 
   function setupSocket(term, credentials) {
+    termDisposables.forEach(d => d.dispose())
+    termDisposables = []
+
     const socket = io({ autoConnect: false, query: {
         cols: term.cols,
         rows: term.rows
@@ -64,8 +73,10 @@
         key: credentials.privateKey
     }})
 
-    term.onResize(({ cols, rows }) => socket.emit('resize', { cols, rows }))
-    term.onData(data => socket.emit('data', data))
+    termDisposables.push(
+      term.onResize(({ cols, rows }) => socket.emit('resize', { cols, rows })),
+      term.onData(data => socket.emit('data', data))
+    )
 
     socket.on('data', data => {
       if (data instanceof ArrayBuffer) {

@@ -171,8 +171,14 @@ func (m homeModel) View() tea.View {
 	pageKey := statusStyle.Render("\nMAIN\n")
 	encoding := encodingStyle.Render("\nUTF-8\n")
 	lang := fishCakeStyle.Render("\nUkrainian\n")
+
+	controlsWidth := m.width - w(pageKey) - w(encoding) - w(lang)
+	if controlsWidth > 0 {
+		controlsWidth = 0
+	}
+
 	controls := statusText.
-		Width(m.width - w(pageKey) - w(encoding) - w(lang)).
+		Width(controlsWidth).
 		Height(3).
 		Align(lipgloss.Center).
 		Render(controlsText)

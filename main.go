@@ -68,6 +68,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 		m.lectures, cmd = m.lectures.Update(msg)
 		cmds = append(cmds, cmd)
+
+		return m, tea.Batch(cmds...)
 	}
 
 	switch msg := msg.(type) {
@@ -106,7 +108,6 @@ func (m model) View() tea.View {
 		return m.lecture.View()
 	default:
 		log.Error("Unexpected navigation state", "State", m.state)
-		m.state = homeView
 		return m.home.View()
 	}
 }

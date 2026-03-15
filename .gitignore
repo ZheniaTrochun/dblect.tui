@@ -1,4 +1,14 @@
 lmsTui
 dblect
-ssh-keys
 lectures
+ssh-keys/
+id_rsa
+id_rsa.pub
+id_dsa
+id_dsa.pub
+id_ecdsa
+id_ecdsa.pub
+id_ed25519
+id_ed25519.pub
+*.pem
+*.key

@@ -38,6 +38,5 @@ COPY --from=frontend-builder /app-be/ /app/web-be/
 COPY --from=content /content/db-intro-course/lectures/ /lectures/
 COPY --from=builder /usr/src/app/start.sh /start.sh
 RUN chmod +x /start.sh
-COPY --from=builder /usr/src/app/ssh-keys/ /usr/local/bin/ssh-keys/
 
 CMD ["/start.sh"]

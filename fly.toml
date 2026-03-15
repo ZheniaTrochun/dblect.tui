@@ -21,6 +21,14 @@ primary_region = 'fra'
   [[services.ports]]
     port = 23234
 
+[[files]]
+  guest_path = "/usr/local/bin/ssh-keys/id_ed25519.pub"
+  secret_name = "DBLECT_SSH_SERVER_PUBLIC_KEY"
+
+[[files]]
+  guest_path = "/usr/local/bin/ssh-keys/id_ed25519"
+  secret_name = "DBLECT_SSH_SERVER_PRIVATE_KEY"
+
 [[vm]]
   memory = "256mb"
   cpu_kind = "shared"
