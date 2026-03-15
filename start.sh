@@ -19,5 +19,5 @@ dblect_pid=$!
 ORIGIN_HOST="https://dblect.fly.dev" node /app/web-be/app.js &
 node_pid=$!
 
-wait -n
+wait -n || true
 cleanup

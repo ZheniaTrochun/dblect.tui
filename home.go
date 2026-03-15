@@ -173,7 +173,7 @@ func (m homeModel) View() tea.View {
 	lang := fishCakeStyle.Render("\nUkrainian\n")
 
 	controlsWidth := m.width - w(pageKey) - w(encoding) - w(lang)
-	if controlsWidth > 0 {
+	if controlsWidth < 0 {
 		controlsWidth = 0
 	}
 

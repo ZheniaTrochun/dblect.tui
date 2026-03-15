@@ -24,10 +24,12 @@ primary_region = 'fra'
 [[files]]
   guest_path = "/usr/local/bin/ssh-keys/id_ed25519.pub"
   secret_name = "DBLECT_SSH_SERVER_PUBLIC_KEY"
+  perm = "0600"
 
 [[files]]
   guest_path = "/usr/local/bin/ssh-keys/id_ed25519"
   secret_name = "DBLECT_SSH_SERVER_PRIVATE_KEY"
+  perm = "0600"
 
 [[vm]]
   memory = "256mb"
