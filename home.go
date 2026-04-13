@@ -17,11 +17,11 @@ import (
 var banner string
 
 var (
-	selectionStyle = lipgloss.NewStyle().
+	selectionStyle = defaultStyle.
 			Foreground(lipgloss.Color("#F25D94")).
 			Underline(true)
 
-	dialogBoxStyle = lipgloss.NewStyle().
+	dialogBoxStyle = defaultStyle.
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("#874BFD")).
 			Padding(5, 5).
@@ -30,15 +30,15 @@ var (
 			BorderRight(true).
 			BorderBottom(true)
 
-	statusNugget = lipgloss.NewStyle().
+	statusNugget = defaultStyle.
 			Foreground(lipgloss.Color("#FFFDF5")).
 			Padding(0, 1)
 
-	statusBarStyle = lipgloss.NewStyle().
+	statusBarStyle = defaultStyle.
 			Foreground(lipgloss.Color("#C1C6B2")).
 			Background(lipgloss.Color("#353533"))
 
-	statusStyle = lipgloss.NewStyle().
+	statusStyle = defaultStyle.
 			Inherit(statusBarStyle).
 			Foreground(lipgloss.Color("#FFFDF5")).
 			Background(lipgloss.Color("#FF5F87")).
@@ -53,7 +53,16 @@ var (
 
 	fishCakeStyle = statusNugget.Background(lipgloss.Color("#6124DF"))
 
-	docStyle = lipgloss.NewStyle().Padding(0, 0, 0, 0)
+	docStyle = defaultStyle.Padding(0, 0, 0, 0)
+
+	headerStyle = defaultStyle.
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(defaultBorder).
+			Padding(0, 1).
+			BorderTop(true).
+			BorderLeft(true).
+			BorderRight(true).
+			BorderBottom(true)
 )
 
 var (
@@ -135,29 +144,40 @@ func (m homeModel) View() tea.View {
 
 	doc := strings.Builder{}
 
-	grad := applyGradient(
-		lipgloss.NewStyle(),
-		banner,
-		lipgloss.Color("#EDFF82"),
-		lipgloss.Color("#F25D94"),
-	)
+	//grad := applyGradient(
+	//	lipgloss.NewStyle(),
+	//	banner,
+	//	lipgloss.Color("#EDFF82"),
+	//	lipgloss.Color("#F25D94"),
+	//)
 
-	header := lipgloss.NewStyle().
-		Width(70).
-		Align(lipgloss.Center).
-		Render(grad)
+	//header := lipgloss.NewStyle().
+	//	Width(70).
+	//	Align(lipgloss.Center).
+	//	Render(grad)
 
-	chooseList := lipgloss.NewStyle().Align(lipgloss.Left).Width(maxChoiceLength + 4).Render(s)
+	headerLeftTitle := defaultStyle.Foreground(active).Align(lipgloss.Left).Render("  dblect")
+	headerSubTitle := defaultStyle.Foreground(textDim).Align(lipgloss.Right).Render("database lecture terminal   ")
+	//headerText := lipgloss.JoinHorizontal(lipgloss.Left, headerLeftTitle, headerSubTitle)
+	spacer := defaultStyle.Render(strings.Repeat(" ", m.width-2-len("  dblect")-len("database lecture terminal  ")))
+	header := headerStyle.Width(m.width).Render(headerLeftTitle + spacer + headerSubTitle)
+
+	navSectionBanner := defaultStyle.
+		Align(lipgloss.Left).
+		Foreground(mainAccent).
+		Render(banner)
+
+	chooseList := defaultStyle.Align(lipgloss.Left).Width(maxChoiceLength + 4).Render(s)
 
 	choicesBox := dialogBoxStyle.
 		Width(70).
-		Align(lipgloss.Center).
+		Align(lipgloss.Left).
 		Render(chooseList)
 
-	ui := lipgloss.JoinVertical(lipgloss.Center, header, choicesBox)
+	ui := lipgloss.JoinVertical(lipgloss.Left, header, navSectionBanner, choicesBox)
 
-	dialog := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
+	dialog := lipgloss.Place(m.width, m.height-5,
+		lipgloss.Left, lipgloss.Left,
 		ui,
 		lipgloss.WithWhitespaceChars("  "),
 	)
