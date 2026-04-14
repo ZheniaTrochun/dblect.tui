@@ -53,16 +53,7 @@ var (
 
 	fishCakeStyle = statusNugget.Background(lipgloss.Color("#6124DF"))
 
-	docStyle = defaultStyle.Padding(0, 0, 0, 0)
-
-	headerStyle = defaultStyle.
-			Border(lipgloss.NormalBorder()).
-			BorderForeground(defaultBorder).
-			Padding(0, 1).
-			BorderTop(true).
-			BorderLeft(true).
-			BorderRight(true).
-			BorderBottom(true)
+	docStyle = defaultStyle //.Padding(0, 0, 0, 0)
 )
 
 var (
@@ -144,28 +135,16 @@ func (m homeModel) View() tea.View {
 
 	doc := strings.Builder{}
 
-	//grad := applyGradient(
-	//	lipgloss.NewStyle(),
-	//	banner,
-	//	lipgloss.Color("#EDFF82"),
-	//	lipgloss.Color("#F25D94"),
-	//)
+	header := renderHeader(m.width)
 
-	//header := lipgloss.NewStyle().
-	//	Width(70).
-	//	Align(lipgloss.Center).
-	//	Render(grad)
-
-	headerLeftTitle := defaultStyle.Foreground(active).Align(lipgloss.Left).Render("  dblect")
-	headerSubTitle := defaultStyle.Foreground(textDim).Align(lipgloss.Right).Render("database lecture terminal   ")
-	//headerText := lipgloss.JoinHorizontal(lipgloss.Left, headerLeftTitle, headerSubTitle)
-	spacer := defaultStyle.Render(strings.Repeat(" ", m.width-2-len("  dblect")-len("database lecture terminal  ")))
-	header := headerStyle.Width(m.width).Render(headerLeftTitle + spacer + headerSubTitle)
+	formattedBanner := formatBanner(banner, m.width)
 
 	navSectionBanner := defaultStyle.
 		Align(lipgloss.Left).
-		Foreground(mainAccent).
-		Render(banner)
+		Foreground(active).
+		Render(formattedBanner)
+
+	statusBar := buildStatus(m.width)
 
 	chooseList := defaultStyle.Align(lipgloss.Left).Width(maxChoiceLength + 4).Render(s)
 
@@ -174,7 +153,7 @@ func (m homeModel) View() tea.View {
 		Align(lipgloss.Left).
 		Render(chooseList)
 
-	ui := lipgloss.JoinVertical(lipgloss.Left, header, navSectionBanner, choicesBox)
+	ui := lipgloss.JoinVertical(lipgloss.Left, header, navSectionBanner, statusBar, choicesBox)
 
 	dialog := lipgloss.Place(m.width, m.height-5,
 		lipgloss.Left, lipgloss.Left,
@@ -184,33 +163,35 @@ func (m homeModel) View() tea.View {
 
 	doc.WriteString(dialog + "\n\n")
 
-	w := lipgloss.Width
+	//w := lipgloss.Width
+	//
+	//controlsText := "\nk/↑ - вгору, j/↓ - вниз, 1/2/3 - перейти на варіант N, enter - обрати, q - вийти\n"
+	//
+	//pageKey := statusStyle.Render("\nMAIN\n")
+	//encoding := encodingStyle.Render("\nUTF-8\n")
+	//lang := fishCakeStyle.Render("\nUkrainian\n")
+	//
+	//controlsWidth := m.width - w(pageKey) - w(encoding) - w(lang)
+	//if controlsWidth < 0 {
+	//	controlsWidth = 0
+	//}
+	//
+	//controls := statusText.
+	//	Width(controlsWidth).
+	//	Height(3).
+	//	Align(lipgloss.Center).
+	//	Render(controlsText)
+	//
+	//bar := lipgloss.JoinHorizontal(lipgloss.Top,
+	//	pageKey,
+	//	controls,
+	//	encoding,
+	//	lang,
+	//)
 
-	controlsText := "\nk/↑ - вгору, j/↓ - вниз, 1/2/3 - перейти на варіант N, enter - обрати, q - вийти\n"
+	footer := renderFooter("normal", m.width)
 
-	pageKey := statusStyle.Render("\nMAIN\n")
-	encoding := encodingStyle.Render("\nUTF-8\n")
-	lang := fishCakeStyle.Render("\nUkrainian\n")
-
-	controlsWidth := m.width - w(pageKey) - w(encoding) - w(lang)
-	if controlsWidth < 0 {
-		controlsWidth = 0
-	}
-
-	controls := statusText.
-		Width(controlsWidth).
-		Height(3).
-		Align(lipgloss.Center).
-		Render(controlsText)
-
-	bar := lipgloss.JoinHorizontal(lipgloss.Top,
-		pageKey,
-		controls,
-		encoding,
-		lang,
-	)
-
-	doc.WriteString(statusBarStyle.Width(m.width).Render(bar))
+	doc.WriteString(statusBarStyle.Width(m.width).Render(footer))
 
 	v := tea.NewView(docStyle.Render(doc.String()))
 	v.AltScreen = true
@@ -239,4 +220,39 @@ func applyGradient(base lipgloss.Style, input string, from, to color.Color) stri
 		output.WriteString(base.Foreground(gradient[i]).Render(char))
 	}
 	return output.String()
+}
+
+func formatBanner(banner string, width int) string {
+	splitted := strings.Split(banner, "\n")
+
+	var formatted strings.Builder
+
+	formatted.WriteString(strings.Repeat(" ", width) + "\n")
+	for _, line := range splitted {
+		padding := width - lipgloss.Width(line) - 2
+		formattedLine := "  " + line + strings.Repeat(" ", padding) + "\n"
+		formatted.WriteString(formattedLine)
+	}
+	formatted.WriteString(strings.Repeat(" ", width))
+	//formatted.WriteString(strings.Repeat(" ", width) + "\n")
+
+	return formatted.String()
+}
+
+func buildStatus(width int) string {
+	connectionLabel := defaultStyle.Foreground(textDim).Render("connected to ")
+	connectionName := defaultStyle.Foreground(textMain).Render("databases_lecture_db")
+	versionLabel := defaultStyle.Foreground(textDim).Render("postgresql ")
+	version := defaultStyle.Foreground(textMain).Render("17.5")
+	statusIndicator := defaultStyle.Foreground(okColor).Render("● online")
+
+	separator := defaultStyle.Foreground(textDim).Render("  ·  ")
+
+	statusLine := connectionLabel + connectionName + separator + versionLabel + version + separator + statusIndicator
+
+	paddingLeft := "  "
+	paddingRightLen := width - lipgloss.Width(statusLine) - 2
+	paddingRight := defaultStyle.Render(strings.Repeat(" ", paddingRightLen) + "\n")
+
+	return defaultStyle.Render(paddingLeft + statusLine + paddingRight)
 }
