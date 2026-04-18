@@ -17,29 +17,12 @@ import (
 var banner string
 
 var (
-	selectionStyle = defaultStyle.
-			Foreground(lipgloss.Color("#F25D94")).
-			Underline(true)
-
-	dialogBoxStyle = defaultStyle.
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#874BFD")).
-			Padding(5, 5).
-			BorderTop(true).
-			BorderLeft(true).
-			BorderRight(true).
-			BorderBottom(true)
-)
-
-var (
-	choices = []string{"Лекції", "Рейтинг", "Вправи SQL"}
+	choices            = []string{"Лекції", "Рейтинг", "SQL пісочниця"}
+	choiceDescriptions = []string{"Конспекти лекцій", "База даних рейтингових балів", "Sandbox бази даних \"кампусу\""}
 
 	choiceToNav = map[string]view{choices[0]: lecturesView, choices[1]: homeView, choices[2]: homeView}
 
-	longestChoice = slices.MaxFunc(choices, func(a, b string) int {
-		return len(a) - len(b)
-	})
-	maxChoiceLength = len(longestChoice)
+	longestDescription = slices.MaxFunc(choiceDescriptions, func(a, b string) int { return len(a) - len(b) })
 )
 
 type homeModel struct {
@@ -93,21 +76,6 @@ func (m homeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m homeModel) View() tea.View {
-	s := ""
-	for i, choice := range choices {
-		if i != 0 {
-			s += "\n\n"
-		}
-
-		orderPrefix := strconv.Itoa(i+1) + ". "
-
-		if m.cursor == i {
-			s += "  " + selectionStyle.Align(lipgloss.Center).Render(orderPrefix+choice)
-		} else {
-			s += orderPrefix + choice
-		}
-	}
-
 	doc := strings.Builder{}
 
 	header := renderHeader(m.width)
@@ -121,14 +89,27 @@ func (m homeModel) View() tea.View {
 
 	statusBar := buildStatus(m.width)
 
-	chooseList := defaultStyle.Align(lipgloss.Left).Width(maxChoiceLength + 4).Render(s)
+	chooseList := buildOptionsList(m.cursor)
+	cursorTopOffset := 14 + m.cursor
+	cursorLeftOffset := 5
+	selectionCursor := tea.NewCursor(cursorLeftOffset, cursorTopOffset)
+	selectionCursor.Color = active
+	selectionCursor.Blink = true
 
-	choicesBox := dialogBoxStyle.
-		Width(70).
-		Align(lipgloss.Left).
-		Render(chooseList)
+	choicesBox := defaultStyle.Width(m.width).Render("\n" + chooseList)
 
-	ui := lipgloss.JoinVertical(lipgloss.Left, header, navSectionBanner, statusBar, choicesBox)
+	horizontalDividerText := " " + strings.Repeat("─", m.width-2) + " "
+
+	horizontalDivider := defaultStyle.Width(m.width).Foreground(defaultBorder).Render(horizontalDividerText)
+
+	ui := lipgloss.JoinVertical(
+		lipgloss.Left,
+		header,
+		navSectionBanner,
+		statusBar,
+		choicesBox,
+		horizontalDivider,
+	)
 
 	dialog := lipgloss.Place(m.width, m.height-5,
 		lipgloss.Left, lipgloss.Left,
@@ -144,6 +125,7 @@ func (m homeModel) View() tea.View {
 
 	v := tea.NewView(defaultStyle.Render(doc.String()))
 	v.AltScreen = true
+	v.Cursor = selectionCursor
 
 	return v
 }
@@ -202,4 +184,30 @@ func buildStatus(width int) string {
 	paddingRight := defaultStyle.Render(strings.Repeat(" ", paddingRightLen) + "\n")
 
 	return defaultStyle.Render(paddingLeft + statusLine + paddingRight)
+}
+
+func buildOptionsList(cursor int) string {
+	acc := ""
+	for i, choice := range choices {
+		orderPrefix := "  " + strconv.Itoa(i+1)
+
+		var choiceColor color.Color
+
+		if cursor == i {
+			choiceColor = active
+		} else {
+			choiceColor = textMain
+		}
+
+		rowMainText := orderPrefix + "    " + choice
+
+		renderedMainText := defaultStyle.Align(lipgloss.Left).Width(25).Foreground(choiceColor).Render(rowMainText)
+		renderedDescription := defaultStyle.Align(lipgloss.Right).Width(lipgloss.Width(longestDescription)).Foreground(textDim).Render(choiceDescriptions[i])
+
+		fullRow := lipgloss.JoinHorizontal(lipgloss.Left, renderedMainText, renderedDescription)
+
+		acc += fullRow + "\n"
+	}
+
+	return acc
 }
