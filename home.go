@@ -29,31 +29,6 @@ var (
 			BorderLeft(true).
 			BorderRight(true).
 			BorderBottom(true)
-
-	statusNugget = defaultStyle.
-			Foreground(lipgloss.Color("#FFFDF5")).
-			Padding(0, 1)
-
-	statusBarStyle = defaultStyle.
-			Foreground(lipgloss.Color("#C1C6B2")).
-			Background(lipgloss.Color("#353533"))
-
-	statusStyle = defaultStyle.
-			Inherit(statusBarStyle).
-			Foreground(lipgloss.Color("#FFFDF5")).
-			Background(lipgloss.Color("#FF5F87")).
-			Padding(0, 1).
-			MarginRight(1)
-
-	encodingStyle = statusNugget.
-			Background(lipgloss.Color("#A550DF")).
-			Align(lipgloss.Right)
-
-	statusText = lipgloss.NewStyle().Inherit(statusBarStyle)
-
-	fishCakeStyle = statusNugget.Background(lipgloss.Color("#6124DF"))
-
-	docStyle = defaultStyle //.Padding(0, 0, 0, 0)
 )
 
 var (
@@ -163,37 +138,11 @@ func (m homeModel) View() tea.View {
 
 	doc.WriteString(dialog + "\n\n")
 
-	//w := lipgloss.Width
-	//
-	//controlsText := "\nk/↑ - вгору, j/↓ - вниз, 1/2/3 - перейти на варіант N, enter - обрати, q - вийти\n"
-	//
-	//pageKey := statusStyle.Render("\nMAIN\n")
-	//encoding := encodingStyle.Render("\nUTF-8\n")
-	//lang := fishCakeStyle.Render("\nUkrainian\n")
-	//
-	//controlsWidth := m.width - w(pageKey) - w(encoding) - w(lang)
-	//if controlsWidth < 0 {
-	//	controlsWidth = 0
-	//}
-	//
-	//controls := statusText.
-	//	Width(controlsWidth).
-	//	Height(3).
-	//	Align(lipgloss.Center).
-	//	Render(controlsText)
-	//
-	//bar := lipgloss.JoinHorizontal(lipgloss.Top,
-	//	pageKey,
-	//	controls,
-	//	encoding,
-	//	lang,
-	//)
-
 	footer := renderFooter("normal", m.width)
 
-	doc.WriteString(statusBarStyle.Width(m.width).Render(footer))
+	doc.WriteString(footer)
 
-	v := tea.NewView(docStyle.Render(doc.String()))
+	v := tea.NewView(defaultStyle.Render(doc.String()))
 	v.AltScreen = true
 
 	return v
@@ -246,9 +195,7 @@ func buildStatus(width int) string {
 	version := defaultStyle.Foreground(textMain).Render("17.5")
 	statusIndicator := defaultStyle.Foreground(okColor).Render("● online")
 
-	separator := defaultStyle.Foreground(textDim).Render("  ·  ")
-
-	statusLine := connectionLabel + connectionName + separator + versionLabel + version + separator + statusIndicator
+	statusLine := connectionLabel + connectionName + styledSeparator + versionLabel + version + styledSeparator + statusIndicator
 
 	paddingLeft := "  "
 	paddingRightLen := width - lipgloss.Width(statusLine) - 2

@@ -22,4 +22,13 @@ var (
 	okColor    = lipgloss.Color("#4ab87a")
 
 	defaultStyle = lipgloss.NewStyle().Background(panelBackground)
+
+	boxWithBorderStyle = defaultStyle.
+				Border(lipgloss.NormalBorder()).
+				BorderForeground(defaultBorder).
+				BorderBackground(panelBackground).
+				BorderTop(true).
+				BorderLeft(true).
+				BorderRight(true).
+				BorderBottom(true)
 )

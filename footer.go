@@ -7,39 +7,60 @@ import (
 
 func renderFooter(viewName string, width int) string {
 
-	controls := []string{"k/↑ - вгору", "j/↓ - вниз", "1-4 - обрати варіант", "enter - обрати", "esc - назад", "q - вийти"}
+	controls := []string{
+		"k/↑ - вгору",
+		"j/↓ - вниз",
+		"1-4 - обрати варіант",
+		"enter - обрати",
+		"esc - назад",
+		"q - вийти",
+		"? - help",
+		"l - language",
+	}
 
-	//controlsText := "\nk/↑ - вгору, j/↓ - вниз, 1/2/3 - перейти на варіант N, enter - обрати, q - вийти\n"
+	controlsText := strings.Join(controls, separatorString)
 
-	controlsText := strings.Join(controls, "   ")
+	pageKeyText := "  " + strings.ToUpper(viewName) + "   "
+	statusText := "  ●  "
+	langText := "   Ukrainian"
 
-	pageKey := defaultStyle.Foreground(active).Render("  " + strings.ToUpper(viewName))
-	lang := defaultStyle.Foreground(active).Render("Ukrainian")
-	status := defaultStyle.Foreground(okColor).Render("  ●  ")
-
-	controlsWidth := width - lipgloss.Width(pageKey) - lipgloss.Width(status) - lipgloss.Width(lang)
+	controlsWidth := width - len(pageKeyText) - len(statusText) - len(langText)
 	if controlsWidth < 0 {
 		controlsWidth = 0
 	}
 
-	renderedControls := defaultStyle.
+	renderedControls := boxWithBorderStyle.
 		Foreground(textDim).
 		Width(controlsWidth).
-		Height(1).
+		Height(2).
 		Align(lipgloss.Center).
+		BorderLeft(false).
+		BorderRight(false).
 		Render(controlsText)
 
-	//return lipgloss.JoinHorizontal(lipgloss.Top,
-	//	pageKey,
-	//	renderedControls,
-	//	lang,
-	//	status,
-	//)
+	controlsHeight := lipgloss.Height(renderedControls)
 
-	return defaultStyle.
-		BorderBottom(true).
-		BorderTop(true).
-		BorderRight(true).
-		BorderLeft(true).
-		Render(pageKey + renderedControls + lang + status)
+	pageKey := boxWithBorderStyle.
+		Foreground(active).
+		Height(controlsHeight).
+		AlignVertical(lipgloss.Center).
+		BorderRight(false).
+		Render(pageKeyText)
+
+	lang := boxWithBorderStyle.
+		Foreground(active).
+		Height(controlsHeight).
+		AlignVertical(lipgloss.Center).
+		BorderLeft(false).
+		BorderRight(false).
+		Render(langText)
+
+	status := boxWithBorderStyle.
+		Foreground(okColor).
+		Height(controlsHeight).
+		AlignVertical(lipgloss.Center).
+		BorderLeft(false).
+		Render(statusText)
+
+	return lipgloss.JoinHorizontal(lipgloss.Left, pageKey, renderedControls, lang, status)
 }
