@@ -41,5 +41,6 @@ RUN chmod +x /start.sh
 
 ENV COLORTERM=truecolor
 ENV TERM=xterm-256color
+ENV CLICOLOR_FORCE=1
 
 CMD ["/start.sh"]
