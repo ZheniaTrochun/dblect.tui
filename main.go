@@ -120,6 +120,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		_ = s.Exit(1)
 		return nil, nil
 	}
+	envs := append(s.Environ(), "TERM="+pty.Term, "COLORTERM=truecolor")
 
 	user := s.User()
 
@@ -151,7 +152,10 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		home:     home,
 	}
 
-	return model, []tea.ProgramOption{tea.WithColorProfile(colorprofile.TrueColor)}
+	return model, []tea.ProgramOption{
+		tea.WithEnvironment(envs),
+		tea.WithColorProfile(colorprofile.TrueColor),
+	}
 }
 
 const (
