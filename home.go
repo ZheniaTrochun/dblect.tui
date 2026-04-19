@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"fmt"
 	"github.com/rivo/uniseg"
 	"image/color"
 	"slices"
@@ -23,6 +24,14 @@ var (
 	choiceToNav = map[string]view{choices[0]: lecturesView, choices[1]: homeView, choices[2]: homeView}
 
 	longestDescription = slices.MaxFunc(choiceDescriptions, func(a, b string) int { return len(a) - len(b) })
+
+	// todo - чогось серйозно не вистачає
+	lectureSections      = []string{"Схема БД", "SQL", "Нормалізація", "Індекси", "Транзакції", "NoSQL"}
+	lectureSectionsSizes = map[string]int{"Схема БД": 3, "SQL": 4, "Нормалізація": 2, "Індекси": 2, "Транзакції": 1, "NoSQL": 1}
+	totalLectures        = 18
+	longestLectureName   = slices.MaxFunc(lectureSections, func(a, b string) int { return len(a) - len(b) })
+
+	progressMock = map[string]int{"Схема БД": 2, "SQL": 3, "Нормалізація": 1, "Індекси": 0, "Транзакції": 1, "NoSQL": 0}
 )
 
 type homeModel struct {
@@ -96,11 +105,14 @@ func (m homeModel) View() tea.View {
 	selectionCursor.Color = active
 	selectionCursor.Blink = true
 
-	choicesBox := defaultStyle.Width(m.width).Render("\n" + chooseList)
+	choicesBox := defaultStyle.Width(m.width).PaddingBottom(1).Render("\n" + chooseList)
 
 	horizontalDividerText := " " + strings.Repeat("─", m.width-2) + " "
 
 	horizontalDivider := defaultStyle.Width(m.width).Foreground(defaultBorder).Render(horizontalDividerText)
+
+	//progressSection := buildProgress(m.width / 2)
+	progressSection := buildProgress(m.width)
 
 	ui := lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -109,6 +121,7 @@ func (m homeModel) View() tea.View {
 		statusBar,
 		choicesBox,
 		horizontalDivider,
+		progressSection,
 	)
 
 	dialog := lipgloss.Place(m.width, m.height-5,
@@ -210,4 +223,80 @@ func buildOptionsList(cursor int) string {
 	}
 
 	return acc
+}
+
+func buildProgress(width int) string {
+	prefixText := "--progress"
+	sectionNameLen := len(longestLectureName) + 4
+
+	progressBarLen := width - sectionNameLen - 7
+
+	var res strings.Builder
+
+	res.WriteString(defaultStyle.Foreground(textDim).Width(width).PaddingLeft(2).Render(prefixText))
+	res.WriteString("\n\n")
+
+	totalCompleted := 0
+
+	for _, section := range lectureSections {
+		completed := progressMock[section]
+		total := lectureSectionsSizes[section]
+
+		totalCompleted += completed
+
+		result := strconv.Itoa(completed) + "/" + strconv.Itoa(total)
+
+		var renderedResult string
+		if completed == total {
+			renderedResult = defaultStyle.Foreground(okColor).PaddingRight(2).PaddingLeft(2).Render(result)
+		} else {
+			renderedResult = defaultStyle.Foreground(textDim).PaddingRight(2).PaddingLeft(2).Render(result)
+		}
+
+		progressBar := buildProgressBar(total, completed, progressBarLen)
+
+		renderedSectionName := defaultStyle.
+			Foreground(textMain).
+			Width(sectionNameLen).
+			PaddingLeft(2).
+			PaddingRight(2).
+			Render(section)
+
+		rowText := renderedSectionName + progressBar + renderedResult
+
+		renderedRow := defaultStyle.Foreground(textMain).Width(width).Render(rowText)
+
+		res.WriteString(renderedRow + "\n")
+	}
+
+	res.WriteString("\n\n")
+
+	var resultColor color.Color
+	if totalCompleted == totalLectures {
+		resultColor = okColor
+	} else {
+		resultColor = textMain
+	}
+
+	totalResult := defaultStyle.Foreground(resultColor).Width(width).PaddingRight(2).PaddingLeft(2).Render(fmt.Sprintf("Пройдено %d / 18 лекцій", totalCompleted))
+	res.WriteString(totalResult)
+
+	return defaultStyle.Width(width).Render(res.String())
+}
+
+func buildProgressBar(steps, completed, length int) string {
+	itemsPerSection := length / steps
+	doneLen := itemsPerSection * completed
+	todoLen := length - doneLen
+
+	//singleItem := "― ━ ▬"
+	singleItem := "━"
+
+	doneText := strings.Repeat(singleItem, doneLen)
+	todoText := strings.Repeat(singleItem, todoLen)
+
+	done := defaultStyle.Foreground(active).Render(doneText)
+	todo := defaultStyle.Foreground(textDim).Render(todoText)
+
+	return done + todo
 }
