@@ -7,9 +7,8 @@ import (
 	"charm.land/wish/v2/activeterm"
 	"charm.land/wish/v2/bubbletea"
 	"charm.land/wish/v2/logging"
-	"fmt"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/ssh"
-	"github.com/muesli/termenv"
 
 	"context"
 	_ "embed"
@@ -152,7 +151,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		home:     home,
 	}
 
-	return model, []tea.ProgramOption{}
+	return model, []tea.ProgramOption{tea.WithColorProfile(colorprofile.TrueColor)}
 }
 
 const (
@@ -161,11 +160,6 @@ const (
 )
 
 func main() {
-	os.Setenv("COLORTERM", "truecolor")
-	os.Setenv("TERM", "xterm-256color")
-
-	p := termenv.ColorProfile()
-	fmt.Println("color profile:", p)
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
