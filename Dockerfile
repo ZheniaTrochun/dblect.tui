@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -v -o /dblect .
 FROM alpine/git AS content
 
 WORKDIR /content
-RUN git clone https://github.com/ZheniaTrochun/db-intro-course.git
+RUN GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/ZheniaTrochun/db-intro-course.git
 
 
 FROM node:22-alpine
