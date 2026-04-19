@@ -121,7 +121,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		_ = s.Exit(1)
 		return nil, nil
 	}
-	envs := append(s.Environ(), "TERM="+pty.Term, "COLORTERM=truecolor")
+	envs := append(s.Environ(), "TERM="+pty.Term, "COLORTERM=truecolor", "CLICOLOR_FORCE=1")
 	for _, e := range envs {
 		if strings.Contains(e, "COLORTERM") || strings.Contains(e, "TERM") {
 			log.Info("env", "val", e)
