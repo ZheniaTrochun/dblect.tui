@@ -7,13 +7,11 @@ import (
 	"charm.land/wish/v2/activeterm"
 	"charm.land/wish/v2/bubbletea"
 	"charm.land/wish/v2/logging"
-	"github.com/charmbracelet/colorprofile"
-	"github.com/charmbracelet/ssh"
-	"strings"
-
 	"context"
 	_ "embed"
 	"errors"
+	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/ssh"
 	"net"
 	"os"
 	"os/signal"
@@ -114,22 +112,14 @@ func (m model) View() tea.View {
 	}
 }
 
-func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+func teaHandler(s ssh.Session) *tea.Program {
 	pty, _, ok := s.Pty()
 	if !ok {
 		log.Error("Client connected without PTY - connection refused", "User", s.User())
 		_ = s.Exit(1)
-		return nil, nil
+		return nil
 	}
 	envs := append(s.Environ(), "TERM="+pty.Term, "COLORTERM=truecolor", "CLICOLOR_FORCE=1")
-	for _, e := range envs {
-		if strings.Contains(e, "COLORTERM") || strings.Contains(e, "TERM") {
-			log.Info("env", "val", e)
-		}
-	}
-
-	p := colorprofile.Detect(nil, envs)
-	log.Info("detected profile", "profile", p)
 
 	user := s.User()
 
@@ -161,10 +151,22 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		home:     home,
 	}
 
-	return model, []tea.ProgramOption{
+	opts := []tea.ProgramOption{
+		tea.WithInput(pty.Slave),
+		tea.WithOutput(pty.Slave),
 		tea.WithEnvironment(envs),
+		tea.WithWindowSize(pty.Window.Width, pty.Window.Height),
 		tea.WithColorProfile(colorprofile.TrueColor),
+		// copied from charm.land/wish/v2@v2.0.0/bubbletea/tea.go:93
+		tea.WithFilter(func(_ tea.Model, msg tea.Msg) tea.Msg {
+			if _, ok := msg.(tea.SuspendMsg); ok {
+				return tea.ResumeMsg{}
+			}
+			return msg
+		}),
 	}
+
+	return tea.NewProgram(model, opts...)
 }
 
 const (
@@ -181,7 +183,7 @@ func main() {
 			return true
 		}),
 		wish.WithMiddleware(
-			bubbletea.Middleware(teaHandler),
+			bubbletea.MiddlewareWithProgramHandler(teaHandler),
 			activeterm.Middleware(),
 			logging.Middleware(),
 		),
