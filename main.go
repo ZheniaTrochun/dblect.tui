@@ -7,7 +7,9 @@ import (
 	"charm.land/wish/v2/activeterm"
 	"charm.land/wish/v2/bubbletea"
 	"charm.land/wish/v2/logging"
+	"fmt"
 	"github.com/charmbracelet/ssh"
+	"github.com/muesli/termenv"
 
 	"context"
 	_ "embed"
@@ -159,6 +161,11 @@ const (
 )
 
 func main() {
+	os.Setenv("COLORTERM", "truecolor")
+	os.Setenv("TERM", "xterm-256color")
+
+	p := termenv.ColorProfile()
+	fmt.Println("color profile:", p)
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
