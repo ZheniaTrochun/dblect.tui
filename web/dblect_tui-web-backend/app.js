@@ -65,7 +65,7 @@ io.on('connection', socket => {
             socket.disconnect(true)
         })
         .on('ready', () => {
-            ssh.shell({ term: 'xterm-256color', cols, rows }, (err, stream) => {
+            ssh.shell({ term: 'xterm-256color', clicolor_force: '1', cols, rows }, (err, stream) => {
                 if (err) {
                     logger.error("SSH shell error", { ...mdc, err })
                     socket.emit('data', '\r\n*** SSH SHELL ERROR: ' + err.message + ' ***\r\n')
