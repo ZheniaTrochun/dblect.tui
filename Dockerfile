@@ -39,8 +39,4 @@ COPY --from=content /content/db-intro-course/lectures/ /lectures/
 COPY --from=builder /usr/src/app/start.sh /start.sh
 RUN chmod +x /start.sh
 
-ENV COLORTERM=truecolor
-ENV TERM=xterm-256color
-ENV CLICOLOR_FORCE=1
-
 CMD ["/start.sh"]

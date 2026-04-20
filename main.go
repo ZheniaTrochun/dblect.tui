@@ -154,8 +154,6 @@ func teaHandler(s ssh.Session) *tea.Program {
 	opts := []tea.ProgramOption{
 		tea.WithInput(s),
 		tea.WithOutput(s),
-		//tea.WithInput(pty.Slave),
-		//tea.WithOutput(pty.Slave),
 		tea.WithEnvironment(envs),
 		tea.WithWindowSize(pty.Window.Width, pty.Window.Height),
 		tea.WithColorProfile(colorprofile.TrueColor),
