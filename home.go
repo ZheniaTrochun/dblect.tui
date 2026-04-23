@@ -3,8 +3,8 @@ package main
 import (
 	_ "embed"
 	"fmt"
-	"github.com/rivo/uniseg"
 	"image/color"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,6 +16,9 @@ import (
 
 //go:embed banner.txt
 var banner string
+
+//go:embed test_tip.md
+var testTip string
 
 var (
 	choices            = []string{"Лекції", "Рейтинг", "SQL пісочниця"}
@@ -32,6 +35,9 @@ var (
 	longestLectureName   = slices.MaxFunc(lectureSections, func(a, b string) int { return len(a) - len(b) })
 
 	progressMock = map[string]int{"Схема БД": 2, "SQL": 3, "Нормалізація": 1, "Індекси": 0, "Транзакції": 1, "NoSQL": 0}
+
+	tipTitle = strings.Replace(strings.Split(testTip, "\n")[0], "# ", "", -1)
+	tipText  = strings.Trim(strings.TrimPrefix(testTip, "# "+tipTitle), "\n ")
 )
 
 type homeModel struct {
@@ -105,14 +111,16 @@ func (m homeModel) View() tea.View {
 	selectionCursor.Color = active
 	selectionCursor.Blink = true
 
-	choicesBox := defaultStyle.Width(m.width).PaddingBottom(1).Render("\n" + chooseList)
+	choicesBox := defaultStyle.Width(m.width).PaddingTop(1).Render(chooseList)
 
-	horizontalDividerText := " " + strings.Repeat("─", m.width-2) + " "
+	horizontalDivider := divider(m.width)
 
-	horizontalDivider := defaultStyle.Width(m.width).Foreground(defaultBorder).Render(horizontalDividerText)
-
-	//progressSection := buildProgress(m.width / 2)
-	progressSection := buildProgress(m.width)
+	var centerPart string
+	if m.width < 80 {
+		centerPart = buildCenterPartNarrow(m.width)
+	} else {
+		centerPart = buildCenterPartWide(m.width)
+	}
 
 	ui := lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -121,7 +129,7 @@ func (m homeModel) View() tea.View {
 		statusBar,
 		choicesBox,
 		horizontalDivider,
-		progressSection,
+		centerPart,
 	)
 
 	dialog := lipgloss.Place(m.width, m.height-5,
@@ -141,29 +149,6 @@ func (m homeModel) View() tea.View {
 	v.Cursor = selectionCursor
 
 	return v
-}
-
-// applyGradient applies a gradient to the given string.
-func applyGradient(base lipgloss.Style, input string, from, to color.Color) string {
-	// We want to get the graphemes of the input string, which is the number of
-	// characters as a human would see them.
-	//
-	// We definitely don't want to use len(), because that returns the
-	// bytes. The rune count would get us closer but there are times, like with
-	// emojis, where the rune count is greater than the number of actual
-	// characters.
-	g := uniseg.NewGraphemes(input)
-	var chars []string
-	for g.Next() {
-		chars = append(chars, g.Str())
-	}
-
-	gradient := lipgloss.Blend1D(len(chars), from, to)
-	var output strings.Builder
-	for i, char := range chars {
-		output.WriteString(base.Foreground(gradient[i]).Render(char))
-	}
-	return output.String()
 }
 
 func formatBanner(banner string, width int) string {
@@ -225,6 +210,35 @@ func buildOptionsList(cursor int) string {
 	return acc
 }
 
+func buildCenterPartWide(width int) string {
+	progressWidth := width / 2
+	tipWidth := width - progressWidth
+
+	progressSection := buildProgress(progressWidth)
+	tipSection := buildTip(tipWidth)
+
+	centerPartHeight := int(math.Max(float64(lipgloss.Height(progressSection)), float64(lipgloss.Height(tipSection))))
+
+	progressHolder := defaultStyle.Width(width / 2).Height(centerPartHeight).Render(progressSection)
+	tipHolder := boxWithBorderStyle.Width(width - lipgloss.Width(progressSection)).
+		BorderLeft(true).
+		BorderTop(false).
+		BorderBottom(false).
+		BorderRight(false).
+		Height(centerPartHeight).
+		Render(tipSection)
+
+	return lipgloss.JoinHorizontal(lipgloss.Left, progressHolder, tipHolder)
+}
+
+func buildCenterPartNarrow(width int) string {
+	progressSection := buildProgress(width)
+	tipSection := buildTip(width)
+	horizontalDivider := divider(width)
+
+	return lipgloss.JoinVertical(lipgloss.Left, progressSection, horizontalDivider, tipSection)
+}
+
 func buildProgress(width int) string {
 	prefixText := "--progress"
 	sectionNameLen := len(longestLectureName) + 4
@@ -278,10 +292,45 @@ func buildProgress(width int) string {
 		resultColor = textMain
 	}
 
-	totalResult := defaultStyle.Foreground(resultColor).Width(width).PaddingRight(2).PaddingLeft(2).Render(fmt.Sprintf("Пройдено %d / 18 лекцій", totalCompleted))
+	totalResult := defaultStyle.Foreground(resultColor).Width(width).PaddingRight(2).PaddingLeft(2).Render(fmt.Sprintf("Пройдено %d / 18 лекцій\n", totalCompleted))
 	res.WriteString(totalResult)
 
 	return defaultStyle.Width(width).Render(res.String())
+}
+
+func buildTip(width int) string {
+
+	//			mdRenderer, err := glamour.NewTermRenderer(
+	//				glamour.WithStandardStyle("dracula"),
+	//				glamour.WithWordWrap(m.width-10),
+	//			)
+	//			if err != nil {
+	//				log.Error("Failed to create glamour renderer", "Error", err)
+	//				return m, tea.Quit
+	//			}
+	//
+	//			renderedLecture, err := mdRenderer.Render(lectureContent)
+	//			if err != nil {
+	//				log.Error("Failed to render lecture content", "Error", err)
+	//				return m, tea.Quit
+	//			}
+
+	prefixText := "-- tip of the day"
+
+	prefix := defaultStyle.Foreground(textDim).Width(width).PaddingLeft(2).Render(prefixText)
+
+	title := defaultStyle.Foreground(active).Width(width).PaddingLeft(2).PaddingRight(2).Render(tipTitle + "\n")
+	text := defaultStyle.Foreground(textMain).Width(width).PaddingLeft(2).PaddingRight(2).Render(tipText)
+
+	section := defaultStyle.Width(width).Render(prefix + "\n\n" + title + "\n" + text)
+
+	return section
+}
+
+func divider(width int) string {
+	horizontalDividerText := " " + strings.Repeat("─", width-2) + " "
+
+	return defaultStyle.Width(width).PaddingTop(1).Foreground(defaultBorder).Render(horizontalDividerText)
 }
 
 func buildProgressBar(steps, completed, length int) string {
