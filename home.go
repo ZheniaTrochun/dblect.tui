@@ -95,17 +95,12 @@ func (m homeModel) View() tea.View {
 
 	header := renderHeader(m.width)
 
-	formattedBanner := formatBanner(banner, m.width)
-
-	navSectionBanner := defaultStyle.
-		Align(lipgloss.Left).
-		Foreground(active).
-		Render(formattedBanner)
+	navSectionBanner := formatBanner(banner, m.width)
 
 	statusBar := buildStatus(m.width)
 
 	chooseList := buildOptionsList(m.cursor)
-	cursorTopOffset := 14 + m.cursor
+	cursorTopOffset := 16 + m.cursor
 	cursorLeftOffset := 5
 	selectionCursor := tea.NewCursor(cursorLeftOffset, cursorTopOffset)
 	selectionCursor.Color = active
@@ -152,20 +147,14 @@ func (m homeModel) View() tea.View {
 }
 
 func formatBanner(banner string, width int) string {
-	splitted := strings.Split(banner, "\n")
-
-	var formatted strings.Builder
-
-	formatted.WriteString(strings.Repeat(" ", width) + "\n")
-	for _, line := range splitted {
-		padding := width - lipgloss.Width(line) - 2
-		formattedLine := "  " + line + strings.Repeat(" ", padding) + "\n"
-		formatted.WriteString(formattedLine)
-	}
-	formatted.WriteString(strings.Repeat(" ", width))
-	//formatted.WriteString(strings.Repeat(" ", width) + "\n")
-
-	return formatted.String()
+	return defaultStyle.
+		Align(lipgloss.Left).
+		Foreground(active).
+		Width(width).
+		PaddingBottom(2).
+		PaddingTop(2).
+		PaddingLeft(2).
+		Render(banner)
 }
 
 func buildStatus(width int) string {
