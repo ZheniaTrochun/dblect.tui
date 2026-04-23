@@ -1,6 +1,8 @@
 package main
 
 import (
+	"charm.land/glamour/v2"
+	"charm.land/log/v2"
 	_ "embed"
 	"fmt"
 	"image/color"
@@ -19,6 +21,9 @@ var banner string
 
 //go:embed test_tip.md
 var testTip string
+
+//go:embed md_renderer_style.json
+var mdRendererStyle string
 
 var (
 	choices            = []string{"Лекції", "Рейтинг", "SQL пісочниця"}
@@ -288,30 +293,34 @@ func buildProgress(width int) string {
 }
 
 func buildTip(width int) string {
-
-	//			mdRenderer, err := glamour.NewTermRenderer(
-	//				glamour.WithStandardStyle("dracula"),
-	//				glamour.WithWordWrap(m.width-10),
-	//			)
-	//			if err != nil {
-	//				log.Error("Failed to create glamour renderer", "Error", err)
-	//				return m, tea.Quit
-	//			}
-	//
-	//			renderedLecture, err := mdRenderer.Render(lectureContent)
-	//			if err != nil {
-	//				log.Error("Failed to render lecture content", "Error", err)
-	//				return m, tea.Quit
-	//			}
+	var renderedTip string
+	mdRenderer, err := glamour.NewTermRenderer(
+		glamour.WithStylesFromJSONBytes([]byte(mdRendererStyle)),
+		glamour.WithWordWrap(width-2),
+	)
+	if err != nil {
+		log.Error("Failed to create glamour renderer", "Error", err)
+		renderedTip = fallbackTipRendering(width)
+	} else {
+		renderedTip, err = mdRenderer.Render(testTip)
+		if err != nil {
+			log.Error("Failed to render tip content", "Error", err)
+			renderedTip = fallbackTipRendering(width)
+		}
+	}
 
 	prefixText := "-- tip of the day"
 
 	prefix := defaultStyle.Foreground(textDim).Width(width).PaddingLeft(2).Render(prefixText)
 
+	return lipgloss.JoinVertical(lipgloss.Left, prefix, renderedTip)
+}
+
+func fallbackTipRendering(width int) string {
 	title := defaultStyle.Foreground(active).Width(width).PaddingLeft(2).PaddingRight(2).Render(tipTitle + "\n")
 	text := defaultStyle.Foreground(textMain).Width(width).PaddingLeft(2).PaddingRight(2).Render(tipText)
 
-	section := defaultStyle.Width(width).Render(prefix + "\n\n" + title + "\n" + text)
+	section := defaultStyle.Width(width).Render(title + "\n" + text)
 
 	return section
 }

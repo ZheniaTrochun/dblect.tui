@@ -71,7 +71,7 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if lectureContent, ok := lecturesMap[m.lecture]; ok {
 			mdRenderer, err := glamour.NewTermRenderer(
-				glamour.WithStandardStyle("dracula"),
+				glamour.WithStylesFromJSONBytes([]byte(mdRendererStyle)),
 				glamour.WithWordWrap(m.width-10),
 			)
 			if err != nil {
