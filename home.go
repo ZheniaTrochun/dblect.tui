@@ -98,7 +98,7 @@ func (m homeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m homeModel) View() tea.View {
 	doc := strings.Builder{}
 
-	header := renderHeader(m.width)
+	header := renderHeader(m.width, false)
 
 	navSectionBanner := formatBanner(banner, m.width)
 

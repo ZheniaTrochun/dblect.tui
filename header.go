@@ -10,7 +10,7 @@ const (
 	subTitle  = "database lecture terminal "
 )
 
-func renderHeader(width int) string {
+func renderHeader(width int, hasContinuation bool) string {
 	headerLeftTitle := defaultStyle.Foreground(active).Align(lipgloss.Left).Render(leftTitle)
 	headerSubTitle := defaultStyle.Foreground(textDim).Align(lipgloss.Right).Render(subTitle)
 
@@ -18,5 +18,15 @@ func renderHeader(width int) string {
 	numOfSpaces := width - lipgloss.Width(headerLeftTitle) - lipgloss.Width(headerSubTitle) - 2
 	spacer := defaultStyle.Render(strings.Repeat(" ", numOfSpaces))
 
-	return boxWithBorderStyle.Render(headerLeftTitle + spacer + headerSubTitle)
+	var style lipgloss.Style
+	if hasContinuation {
+		border := lipgloss.NormalBorder()
+		border.BottomLeft = border.MiddleLeft
+		border.BottomRight = border.MiddleRight
+		style = boxWithBorderStyle.Border(border)
+	} else {
+		style = boxWithBorderStyle
+	}
+
+	return style.Render(headerLeftTitle + spacer + headerSubTitle)
 }
