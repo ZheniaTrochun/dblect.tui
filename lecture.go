@@ -6,6 +6,7 @@ import (
 	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 	"charm.land/log/v2"
+	"time"
 
 	"fmt"
 	"io/fs"
@@ -33,12 +34,18 @@ var (
 )
 
 type lectureModel struct {
-	width    int
-	height   int
-	lecture  string
-	lang     string
-	ready    bool
-	viewport viewport.Model
+	width          int
+	height         int
+	lecture        string
+	lectureContent string
+	lang           string
+	ready          bool
+	viewport       viewport.Model
+	lastRenderSeq  int
+}
+
+type renderMsg struct {
+	sequence int
 }
 
 func (m lectureModel) Init() tea.Cmd {
@@ -70,13 +77,7 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport = m.createViewport()
 
 		if lectureContent, ok := lecturesMap[m.lecture]; ok {
-			renderedLecture, err := renderLecture(m.width, lectureContent)
-			if err != nil {
-				log.Error("Failed to render lecture content", "Error", err)
-				return m, tea.Quit
-			}
-
-			m.viewport.SetContent(renderedLecture)
+			m.lectureContent = lectureContent
 		} else {
 			log.Error("Failed to find lecture", "lecture", m.lecture)
 			return m, func() tea.Msg {
@@ -84,9 +85,19 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		renderedLecture, err := renderLecture(m.width, m.lectureContent)
+		if err != nil {
+			log.Error("Failed to render lecture content", "Error", err)
+			return m, tea.Quit
+		}
+
+		m.viewport.SetContent(renderedLecture)
+
+		m.lastRenderSeq = 0
 		m.ready = true
 
 	case tea.WindowSizeMsg:
+		prevWidth := m.width
 		m.width = msg.Width
 		m.height = msg.Height
 
@@ -94,18 +105,32 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport = m.createViewport()
 			m.ready = true
 		} else {
-			//m.viewport = m.createViewport()
-
 			m.viewport.SetWidth(msg.Width)
 			m.viewport.SetHeight(msg.Height - lipgloss.Height(m.headerView()) - lipgloss.Height(m.footerView()))
 
-			//renderedLecture, err := renderLecture(m.width, m.lecture)
-			//if err != nil {
-			//	log.Error("Failed to render lecture content", "Error", err)
-			//	return m, tea.Quit
-			//}
-			//
-			//m.viewport.SetContent(renderedLecture)
+			if m.width != prevWidth {
+				nextSeq := m.lastRenderSeq + 1
+				m.lastRenderSeq = nextSeq
+
+				renderDebounce := tea.Tick(time.Millisecond*50, func(t time.Time) tea.Msg {
+					return renderMsg{sequence: nextSeq}
+				})
+
+				cmds = append(cmds, renderDebounce)
+			}
+		}
+
+	case renderMsg:
+		if m.lastRenderSeq == msg.sequence {
+			renderedLecture, err := renderLecture(m.width, m.lectureContent)
+			if err != nil {
+				log.Error("Failed to render lecture content", "Error", err)
+				return m, tea.Quit
+			}
+
+			pct := m.viewport.ScrollPercent()
+			m.viewport.SetContent(renderedLecture)
+			m.viewport.SetYOffset(int(pct * float64(m.viewport.TotalLineCount())))
 		}
 	}
 

@@ -192,6 +192,8 @@ func main() {
 			activeterm.Middleware(),
 			logging.Middleware(),
 		),
+		wish.WithMaxTimeout(time.Hour*8),     // max session time is 8 hours
+		wish.WithIdleTimeout(time.Minute*30), // max idle time is 30 minutes
 	)
 
 	if err != nil {
@@ -199,22 +201,30 @@ func main() {
 		os.Exit(1)
 	}
 
-	done := make(chan os.Signal, 1)
+	doneCh := make(chan os.Signal, 1)
+	errCh := make(chan error, 1)
 
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(doneCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	log.Info("Starting SSH server...", "Host", host, "Port", port)
 
 	go func() {
-		if err := s.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-			log.Error("Could not start server", "Error", err)
-			done <- nil
+		err := s.ListenAndServe()
+		if err != nil && errors.Is(err, ssh.ErrServerClosed) {
+			err = nil
 		}
+		errCh <- err
 	}()
 
-	<-done
-	log.Info("Shutting down...")
+	select {
+	case err := <-errCh:
+		log.Error("SSH server failed", "Error", err)
+		os.Exit(1)
+	case done := <-doneCh:
+		log.Info("Shutting down...", "Signal", done)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer func() { cancel() }()
+	defer cancel()
 
 	if err := s.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
 		log.Error("Could not shutdown server", "Error", err)
