@@ -171,8 +171,17 @@ func buildStatus(width int) string {
 
 	statusLine := connectionLabel + connectionName + styledSeparator + versionLabel + version + styledSeparator + statusIndicator
 
+	if width < lipgloss.Width(statusLine)-2 {
+		statusLine = statusIndicator
+	}
+
 	paddingLeft := "  "
 	paddingRightLen := width - lipgloss.Width(statusLine) - 2
+
+	if paddingRightLen < 0 {
+		paddingRightLen = 0
+	}
+
 	paddingRight := defaultStyle.Render(strings.Repeat(" ", paddingRightLen) + "\n")
 
 	return defaultStyle.Render(paddingLeft + statusLine + paddingRight)
@@ -238,6 +247,9 @@ func buildProgress(width int) string {
 	sectionNameLen := len(longestLectureName) + 4
 
 	progressBarLen := width - sectionNameLen - 7
+	if progressBarLen < 0 {
+		progressBarLen = 0
+	}
 
 	var res strings.Builder
 
@@ -326,6 +338,10 @@ func fallbackTipRendering(width int) string {
 }
 
 func divider(width int) string {
+	if width < 2 {
+		return " "
+	}
+
 	horizontalDividerText := " " + strings.Repeat("─", width-2) + " "
 
 	return defaultStyle.Width(width).PaddingTop(1).Foreground(defaultBorder).Render(horizontalDividerText)
@@ -335,6 +351,13 @@ func buildProgressBar(steps, completed, length int) string {
 	itemsPerSection := length / steps
 	doneLen := itemsPerSection * completed
 	todoLen := length - doneLen
+
+	if todoLen < 0 {
+		todoLen = 0
+	}
+	if doneLen < 0 {
+		doneLen = 0
+	}
 
 	//singleItem := "― ━ ▬"
 	singleItem := "━"

@@ -87,10 +87,6 @@ func (m lecturesModel) Init() tea.Cmd {
 }
 
 func (m lecturesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if lecturesReadErr != nil {
-		return m, tea.Quit
-	}
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -140,7 +136,7 @@ func (m lecturesModel) View() tea.View {
 	v := tea.NewView(ui)
 	v.AltScreen = true
 
-	cursorTopOffset := 6 + m.lecturesList.Index()
+	cursorTopOffset := 6 + m.lecturesList.Cursor()
 	cursorLeftOffset := 2
 	selectionCursor := tea.NewCursor(cursorLeftOffset, cursorTopOffset)
 	selectionCursor.Color = active

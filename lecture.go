@@ -70,16 +70,7 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport = m.createViewport()
 
 		if lectureContent, ok := lecturesMap[m.lecture]; ok {
-			mdRenderer, err := glamour.NewTermRenderer(
-				glamour.WithStylesFromJSONBytes([]byte(mdRendererStyle)),
-				glamour.WithWordWrap(m.width-10),
-			)
-			if err != nil {
-				log.Error("Failed to create glamour renderer", "Error", err)
-				return m, tea.Quit
-			}
-
-			renderedLecture, err := mdRenderer.Render(lectureContent)
+			renderedLecture, err := renderLecture(m.width, lectureContent)
 			if err != nil {
 				log.Error("Failed to render lecture content", "Error", err)
 				return m, tea.Quit
@@ -103,8 +94,18 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport = m.createViewport()
 			m.ready = true
 		} else {
+			//m.viewport = m.createViewport()
+
 			m.viewport.SetWidth(msg.Width)
 			m.viewport.SetHeight(msg.Height - lipgloss.Height(m.headerView()) - lipgloss.Height(m.footerView()))
+
+			//renderedLecture, err := renderLecture(m.width, m.lecture)
+			//if err != nil {
+			//	log.Error("Failed to render lecture content", "Error", err)
+			//	return m, tea.Quit
+			//}
+			//
+			//m.viewport.SetContent(renderedLecture)
 		}
 	}
 
@@ -201,4 +202,23 @@ func readLectureContentByName(fsys fs.FS, name string) (string, error) {
 	}
 
 	return string(bytes), nil
+}
+
+func renderLecture(width int, lectureContent string) (string, error) {
+	mdRenderer, err := glamour.NewTermRenderer(
+		glamour.WithStylesFromJSONBytes([]byte(mdRendererStyle)),
+		glamour.WithWordWrap(width-10),
+	)
+	if err != nil {
+		log.Error("Failed to create glamour renderer", "Error", err)
+		return "", err
+	}
+
+	renderedLecture, err := mdRenderer.Render(lectureContent)
+	if err != nil {
+		log.Error("Failed to render lecture content", "Error", err)
+		return "", err
+	}
+
+	return renderedLecture, nil
 }

@@ -132,6 +132,11 @@ func teaHandler(s ssh.Session) *tea.Program {
 
 	lectures := newLecturesModel(pty.Window.Width, pty.Window.Height)
 
+	if lecturesReadErr != nil {
+		log.Error("Failed to read lectures", "Error", lecturesReadErr)
+		os.Exit(1)
+	}
+
 	home := homeModel{
 		height: pty.Window.Height,
 		width:  pty.Window.Width,

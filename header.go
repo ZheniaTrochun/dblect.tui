@@ -16,6 +16,10 @@ func renderHeader(width int, hasContinuation bool) string {
 
 	// `-2` is needed to compensate borders
 	numOfSpaces := width - lipgloss.Width(headerLeftTitle) - lipgloss.Width(headerSubTitle) - 2
+	if numOfSpaces < 0 {
+		numOfSpaces = 0
+	}
+
 	spacer := defaultStyle.Render(strings.Repeat(" ", numOfSpaces))
 
 	var style lipgloss.Style
