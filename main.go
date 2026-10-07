@@ -132,11 +132,6 @@ func teaHandler(s ssh.Session) *tea.Program {
 
 	lectures := newLecturesModel(pty.Window.Width, pty.Window.Height)
 
-	if lecturesReadErr != nil {
-		log.Error("Failed to read lectures", "Error", lecturesReadErr)
-		os.Exit(1)
-	}
-
 	home := homeModel{
 		height: pty.Window.Height,
 		width:  pty.Window.Width,
@@ -180,6 +175,17 @@ const (
 )
 
 func main() {
+	if lecturesReadErr != nil || initialReadErr != nil {
+		var readErr error
+		if lecturesReadErr != nil {
+			readErr = lecturesReadErr
+		} else {
+			readErr = initialReadErr
+		}
+
+		log.Error("Failed to read lectures", "Error", readErr)
+		os.Exit(1)
+	}
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
@@ -192,8 +198,8 @@ func main() {
 			activeterm.Middleware(),
 			logging.Middleware(),
 		),
-		wish.WithMaxTimeout(time.Hour*8),     // max session time is 8 hours
-		wish.WithIdleTimeout(time.Minute*30), // max idle time is 30 minutes
+		wish.WithMaxTimeout(time.Hour*8),  // max session time is 8 hours
+		wish.WithIdleTimeout(time.Hour*2), // max idle time is 2 hours
 	)
 
 	if err != nil {
@@ -204,15 +210,14 @@ func main() {
 	doneCh := make(chan os.Signal, 1)
 	errCh := make(chan error, 1)
 
-	signal.Notify(doneCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(doneCh, syscall.SIGINT, syscall.SIGTERM)
 	log.Info("Starting SSH server...", "Host", host, "Port", port)
 
 	go func() {
 		err := s.ListenAndServe()
-		if err != nil && errors.Is(err, ssh.ErrServerClosed) {
-			err = nil
+		if err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+			errCh <- err
 		}
-		errCh <- err
 	}()
 
 	select {

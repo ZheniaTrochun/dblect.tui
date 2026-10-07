@@ -171,7 +171,7 @@ func buildStatus(width int) string {
 
 	statusLine := connectionLabel + connectionName + styledSeparator + versionLabel + version + styledSeparator + statusIndicator
 
-	if width < lipgloss.Width(statusLine)-2 {
+	if width < lipgloss.Width(statusLine)+2 {
 		statusLine = statusIndicator
 	}
 

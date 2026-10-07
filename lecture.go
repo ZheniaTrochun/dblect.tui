@@ -67,11 +67,6 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case OpenLecture:
-		if initialReadErr != nil {
-			log.Error("Failed to open lecture", "Error", initialReadErr)
-			return m, tea.Quit
-		}
-
 		m.lecture = msg.name
 
 		m.viewport = m.createViewport()
@@ -108,7 +103,7 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.SetWidth(msg.Width)
 			m.viewport.SetHeight(msg.Height - lipgloss.Height(m.headerView()) - lipgloss.Height(m.footerView()))
 
-			if m.width != prevWidth {
+			if m.width != prevWidth && m.lectureContent != "" {
 				nextSeq := m.lastRenderSeq + 1
 				m.lastRenderSeq = nextSeq
 
@@ -130,7 +125,7 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			pct := m.viewport.ScrollPercent()
 			m.viewport.SetContent(renderedLecture)
-			m.viewport.SetYOffset(int(pct * float64(m.viewport.TotalLineCount())))
+			m.viewport.SetYOffset(int(pct * float64(m.viewport.TotalLineCount()-m.height)))
 		}
 	}
 
