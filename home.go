@@ -16,12 +16,6 @@ import (
 	"github.com/charmbracelet/ssh"
 )
 
-//go:embed banner.txt
-var banner string
-
-//go:embed test_tip.md
-var testTip string
-
 //go:embed md_renderer_style.json
 var mdRendererStyle string
 

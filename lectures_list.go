@@ -4,17 +4,8 @@ import (
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"charm.land/log/v2"
-	_ "embed"
 	"fmt"
 	"io"
-	"io/fs"
-	"os"
-)
-
-// todo: extract to a separate file
-var (
-	lectures, lecturesReadErr = readAvailableLectures()
 )
 
 type item struct {
@@ -34,13 +25,13 @@ type lecturesModel struct {
 	cursor       int
 }
 
-func newLecturesModel(width, height int) lecturesModel {
-	lectureItems := make([]item, len(lectures))
-	for i, lecture := range lectures {
+func newLecturesModel(lectureNames []string, width, height int) lecturesModel {
+	lectureItems := make([]item, len(lectureNames))
+	for i, lecture := range lectureNames {
 		lectureItems[i] = item{title: lecture}
 	}
 
-	listLectureItems := make([]list.Item, len(lectures))
+	listLectureItems := make([]list.Item, len(lectureItems))
 	for i, lecture := range lectureItems {
 		listLectureItems[i] = lecture
 	}
@@ -61,25 +52,6 @@ func newLecturesModel(width, height int) lecturesModel {
 		lectures:     lectureItems,
 		lecturesList: listModel,
 	}
-}
-
-func readAvailableLectures() ([]string, error) {
-	lectureDirs, err := fs.ReadDir(os.DirFS("."), "lectures")
-
-	if err != nil {
-		log.Error("Failed to read list of lectures", "err", err)
-		return make([]string, 0), err
-	}
-
-	var lectureNames []string
-
-	for _, lectureDir := range lectureDirs {
-		if lectureDir.IsDir() {
-			lectureNames = append(lectureNames, lectureDir.Name())
-		}
-	}
-
-	return lectureNames, nil
 }
 
 func (m lecturesModel) Init() tea.Cmd {

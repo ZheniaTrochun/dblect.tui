@@ -112,61 +112,64 @@ func (m model) View() tea.View {
 	}
 }
 
-func teaHandler(s ssh.Session) *tea.Program {
-	pty, _, ok := s.Pty()
-	if !ok {
-		log.Error("Client connected without PTY - connection refused", "User", s.User())
-		_ = s.Exit(1)
-		return nil
+func teaHandler(lectureNames []string, lectureContent map[string]string) func(s ssh.Session) *tea.Program {
+	return func(s ssh.Session) *tea.Program {
+		pty, _, ok := s.Pty()
+		if !ok {
+			log.Error("Client connected without PTY - connection refused", "User", s.User())
+			_ = s.Exit(1)
+			return nil
+		}
+		envs := append(s.Environ(), "TERM="+pty.Term, "COLORTERM=truecolor", "CLICOLOR_FORCE=1")
+
+		user := s.User()
+
+		log.Info("New connection established", "User", user)
+
+		lecture := lectureModel{
+			height:             pty.Window.Height,
+			width:              pty.Window.Width,
+			allLecturesContent: lectureContent,
+		}
+
+		lectures := newLecturesModel(lectureNames, pty.Window.Width, pty.Window.Height)
+
+		home := homeModel{
+			height: pty.Window.Height,
+			width:  pty.Window.Width,
+			pty:    pty,
+			cursor: 0,
+		}
+
+		model := model{
+			pty: pty,
+
+			width:  pty.Window.Width,
+			height: pty.Window.Height,
+
+			state:    homeView,
+			lectures: lectures,
+			lecture:  lecture,
+			home:     home,
+		}
+
+		opts := []tea.ProgramOption{
+			tea.WithInput(s),
+			tea.WithOutput(s),
+			tea.WithEnvironment(envs),
+			tea.WithWindowSize(pty.Window.Width, pty.Window.Height),
+			tea.WithColorProfile(colorprofile.TrueColor),
+			// copied from charm.land/wish/v2@v2.0.0/bubbletea/tea.go:93
+			tea.WithFilter(func(_ tea.Model, msg tea.Msg) tea.Msg {
+				if _, ok := msg.(tea.SuspendMsg); ok {
+					return tea.ResumeMsg{}
+				}
+				return msg
+			}),
+		}
+
+		return tea.NewProgram(model, opts...)
 	}
-	envs := append(s.Environ(), "TERM="+pty.Term, "COLORTERM=truecolor", "CLICOLOR_FORCE=1")
-
-	user := s.User()
-
-	log.Info("New connection established", "User", user)
-
-	lecture := lectureModel{
-		height: pty.Window.Height,
-		width:  pty.Window.Width,
-	}
-
-	lectures := newLecturesModel(pty.Window.Width, pty.Window.Height)
-
-	home := homeModel{
-		height: pty.Window.Height,
-		width:  pty.Window.Width,
-		pty:    pty,
-		cursor: 0,
-	}
-
-	model := model{
-		pty: pty,
-
-		width:  pty.Window.Width,
-		height: pty.Window.Height,
-
-		state:    homeView,
-		lectures: lectures,
-		lecture:  lecture,
-		home:     home,
-	}
-
-	opts := []tea.ProgramOption{
-		tea.WithInput(s),
-		tea.WithOutput(s),
-		tea.WithEnvironment(envs),
-		tea.WithWindowSize(pty.Window.Width, pty.Window.Height),
-		tea.WithColorProfile(colorprofile.TrueColor),
-		// copied from charm.land/wish/v2@v2.0.0/bubbletea/tea.go:93
-		tea.WithFilter(func(_ tea.Model, msg tea.Msg) tea.Msg {
-			if _, ok := msg.(tea.SuspendMsg); ok {
-				return tea.ResumeMsg{}
-			}
-			return msg
-		}),
-	}
-
-	return tea.NewProgram(model, opts...)
 }
 
 const (
@@ -175,15 +178,10 @@ const (
 )
 
 func main() {
-	if lecturesReadErr != nil || initialReadErr != nil {
-		var readErr error
-		if lecturesReadErr != nil {
-			readErr = lecturesReadErr
-		} else {
-			readErr = initialReadErr
-		}
+	lectureNames, lectures, lecturesReadErr := readAllLectures(os.DirFS("."))
 
-		log.Error("Failed to read lectures", "Error", readErr)
+	if lecturesReadErr != nil {
+		log.Error("Failed to read lectures", "Error", lecturesReadErr)
 		os.Exit(1)
 	}
 
@@ -194,7 +192,7 @@ func main() {
 			return true
 		}),
 		wish.WithMiddleware(
-			bubbletea.MiddlewareWithProgramHandler(teaHandler),
+			bubbletea.MiddlewareWithProgramHandler(teaHandler(lectureNames, lectures)),
 			activeterm.Middleware(),
 			logging.Middleware(),
 		),

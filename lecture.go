@@ -6,13 +6,10 @@ import (
 	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 	"charm.land/log/v2"
-	"time"
 
 	"fmt"
-	"io/fs"
-	"os"
-	"path"
 	"strings"
+	"time"
 )
 
 var (
@@ -29,19 +26,16 @@ var (
 	}()
 )
 
-var (
-	lecturesMap, initialReadErr = readAllLectures(os.DirFS("."))
-)
-
 type lectureModel struct {
-	width          int
-	height         int
-	lecture        string
-	lectureContent string
-	lang           string
-	ready          bool
-	viewport       viewport.Model
-	lastRenderSeq  int
+	width              int
+	height             int
+	lecture            string
+	lectureContent     string
+	lang               string
+	ready              bool
+	viewport           viewport.Model
+	lastRenderSeq      int
+	allLecturesContent map[string]string
 }
 
 type renderMsg struct {
@@ -71,7 +65,7 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.viewport = m.createViewport()
 
-		if lectureContent, ok := lecturesMap[m.lecture]; ok {
+		if lectureContent, ok := m.allLecturesContent[m.lecture]; ok {
 			m.lectureContent = lectureContent
 		} else {
 			log.Error("Failed to find lecture", "lecture", m.lecture)
@@ -125,7 +119,7 @@ func (m lectureModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			pct := m.viewport.ScrollPercent()
 			m.viewport.SetContent(renderedLecture)
-			m.viewport.SetYOffset(int(pct * float64(m.viewport.TotalLineCount()-m.height)))
+			m.viewport.SetYOffset(int(pct * max(0, float64(m.viewport.TotalLineCount()-m.viewport.Height()))))
 		}
 	}
 
@@ -181,47 +175,6 @@ func (m lectureModel) createViewport() viewport.Model {
 	v.SelectedHighlightStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("238")).Background(lipgloss.Color("47"))
 
 	return v
-}
-
-func readAllLectures(fsys fs.FS) (map[string]string, error) {
-	dirs, err := fs.ReadDir(fsys, "lectures")
-
-	if err != nil {
-		log.Error("Failed to read list of lectures", "err", err)
-		return make(map[string]string), err
-	}
-
-	names := make([]string, 0)
-
-	for _, dir := range dirs {
-		if dir.IsDir() {
-			names = append(names, dir.Name())
-		}
-	}
-
-	result := make(map[string]string)
-
-	for _, name := range names {
-		content, err := readLectureContentByName(fsys, name)
-
-		if err != nil {
-			log.Error("Failed to read lecture", "name", name, "err", err)
-			return make(map[string]string), err
-		}
-
-		result[name] = content
-	}
-
-	return result, nil
-}
-
-func readLectureContentByName(fsys fs.FS, name string) (string, error) {
-	bytes, err := fs.ReadFile(fsys, path.Join("lectures", name, "lecture_notes.md"))
-	if err != nil {
-		return "", err
-	}
-
-	return string(bytes), nil
 }
 
 func renderLecture(width int, lectureContent string) (string, error) {
