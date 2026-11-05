@@ -26,7 +26,8 @@ func readAllLectures(fsys fs.FS) ([]string, map[string]string, error) {
 		return make([]string, 0), make(map[string]string), err
 	}
 
-	result := make(map[string]string)
+	resultContent := make(map[string]string)
+	resultNames := make([]string, 0, len(names))
 
 	for _, name := range names {
 		content, err := readLectureContentByName(fsys, name)
@@ -37,11 +38,12 @@ func readAllLectures(fsys fs.FS) ([]string, map[string]string, error) {
 		}
 
 		if content != "" {
-			result[name] = content
+			resultContent[name] = content
+			resultNames = append(resultNames, name)
 		}
 	}
 
-	return names, result, nil
+	return resultNames, resultContent, nil
 }
 
 func readLectureContentByName(fsys fs.FS, name string) (string, error) {

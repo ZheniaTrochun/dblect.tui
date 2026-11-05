@@ -25,13 +25,13 @@ var (
 
 	choiceToNav = map[string]view{choices[0]: lecturesView, choices[1]: homeView, choices[2]: homeView}
 
-	longestDescription = slices.MaxFunc(choiceDescriptions, func(a, b string) int { return len(a) - len(b) })
+	longestDescription = slices.MaxFunc(choiceDescriptions, func(a, b string) int { return lipgloss.Width(a) - lipgloss.Width(b) })
 
 	// todo - чогось серйозно не вистачає
 	lectureSections      = []string{"Схема БД", "SQL", "Нормалізація", "Індекси", "Транзакції", "NoSQL"}
 	lectureSectionsSizes = map[string]int{"Схема БД": 3, "SQL": 4, "Нормалізація": 2, "Індекси": 2, "Транзакції": 1, "NoSQL": 1}
 	totalLectures        = 18
-	longestLectureName   = slices.MaxFunc(lectureSections, func(a, b string) int { return len(a) - len(b) })
+	longestLectureName   = slices.MaxFunc(lectureSections, func(a, b string) int { return lipgloss.Width(a) - lipgloss.Width(b) })
 
 	progressMock = map[string]int{"Схема БД": 2, "SQL": 3, "Нормалізація": 1, "Індекси": 0, "Транзакції": 1, "NoSQL": 0}
 
@@ -238,7 +238,7 @@ func buildCenterPartNarrow(width int) string {
 
 func buildProgress(width int) string {
 	prefixText := "--progress"
-	sectionNameLen := len(longestLectureName) + 4
+	sectionNameLen := lipgloss.Width(longestLectureName) + 4
 
 	progressBarLen := width - sectionNameLen - 7
 	if progressBarLen < 0 {
